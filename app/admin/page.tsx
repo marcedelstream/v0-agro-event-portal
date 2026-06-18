@@ -26,6 +26,7 @@ import {
   SortAsc,
   SortDesc,
   LayoutDashboard,
+  Users,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,7 +36,7 @@ import { compressImage } from "@/lib/image-utils"
 import { categoryLabels } from "@/lib/events-data"
 import { departmentsList, getCities } from "@/lib/paraguay-data"
 
-type Tab = "dashboard" | "events" | "approved-events" | "providers" | "contacts" | "event-contacts" | "banners" | "create-event" | "gallery"
+type Tab = "dashboard" | "events" | "approved-events" | "providers" | "contacts" | "event-contacts" | "banners" | "create-event" | "gallery" | "organizations"
 
 interface EventSubmission {
   id: string
@@ -139,6 +140,17 @@ interface Banner {
   event_id?: string
 }
 
+interface Organization {
+  id: string
+  name: string
+  slug: string
+  avatar_url: string | null
+  email: string
+  password_hash: string
+  is_active: boolean
+  created_at: string
+}
+
 function generateSlug(title: string): string {
   return title
     .toLowerCase()
@@ -163,12 +175,15 @@ export default function AdminPage() {
   const [generalContacts, setGeneralContacts] = useState<GeneralContact[]>([])
   const [eventContacts, setEventContacts] = useState<EventContactRequest[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
 
   const [selectedEvent, setSelectedEvent] = useState<EventSubmission | null>(null)
   const [selectedProvider, setSelectedProvider] = useState<ProviderSubmission | null>(null)
   const [isPremium, setIsPremium] = useState(false)
 
   const [editingEvent, setEditingEvent] = useState<ApprovedEvent | null>(null)
+  const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null)
+  const [uploadingEditOrgAvatar, setUploadingEditOrgAvatar] = useState(false)
 
   // Sidebar mobile
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -216,6 +231,16 @@ export default function AdminPage() {
   const [uploadingBanner, setUploadingBanner] = useState(false)
   const [savingBanner, setSavingBanner] = useState(false)
 
+  const [newOrganization, setNewOrganization] = useState({
+    name: "",
+    slug: "",
+    avatar_url: "",
+    email: "",
+    password_hash: "",
+  })
+  const [uploadingOrgAvatar, setUploadingOrgAvatar] = useState(false)
+  const [savingOrganization, setSavingOrganization] = useState(false)
+
   // Galeria
   const [galleryEventId, setGalleryEventId] = useState("")
   const [galleryImages, setGalleryImages] = useState<{id: string; image_url: string; caption?: string}[]>([])
@@ -242,6 +267,7 @@ export default function AdminPage() {
       generalContactsRes,
       eventContactsRes,
       bannersRes,
+      organizationsRes,
     ] = await Promise.all([
       supabase.from("event_submissions").select("*").order("created_at", { ascending: false }),
       supabase.from("provider_submissions").select("*").order("created_at", { ascending: false }),
@@ -250,6 +276,7 @@ export default function AdminPage() {
       supabase.from("general_contacts").select("*").order("created_at", { ascending: false }),
       supabase.from("event_contact_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("banners").select("*").order("display_order"),
+      supabase.from("organizations").select("*").order("name"),
     ])
 
     if (eventsRes.data) setEventSubmissions(eventsRes.data)
@@ -258,6 +285,7 @@ export default function AdminPage() {
     if (approvedProvidersRes.data) setApprovedProviders(approvedProvidersRes.data)
     if (generalContactsRes.data) setGeneralContacts(generalContactsRes.data)
     if (bannersRes.data) setBanners(bannersRes.data)
+    if (organizationsRes.data) setOrganizations(organizationsRes.data)
 
     if (eventContactsRes.data && approvedEventsRes.data) {
       const contactsWithTitles = eventContactsRes.data.map((contact) => {
@@ -302,9 +330,11 @@ export default function AdminPage() {
     setIsAuthenticated(false)
   }
 
-  const handleImageUpload = async (file: File, type: "event" | "banner" | "edit-event" | "internal-banner" | "edit-internal-banner" | "edit-gacetilla") => {
+  const handleImageUpload = async (file: File, type: "event" | "banner" | "edit-event" | "internal-banner" | "edit-internal-banner" | "edit-gacetilla" | "organization" | "edit-organization") => {
     if (type === "event" || type === "internal-banner") setUploadingImage(true)
     else if (type === "banner") setUploadingBanner(true)
+    else if (type === "organization") setUploadingOrgAvatar(true)
+    else if (type === "edit-organization") setUploadingEditOrgAvatar(true)
 
     try {
       // Comprimir imagen antes de subir (max 1200px, calidad 85%)
@@ -338,6 +368,10 @@ export default function AdminPage() {
     setEditingEvent((prev) => (prev ? { ...prev, internal_banner_url: publicUrl } : null))
   } else if (type === "edit-gacetilla" && editingEvent) {
     setEditingEvent((prev) => (prev ? { ...prev, gacetilla_imagen: publicUrl } : null))
+  } else if (type === "organization") {
+    setNewOrganization((prev) => ({ ...prev, avatar_url: publicUrl }))
+  } else if (type === "edit-organization" && editingOrganization) {
+    setEditingOrganization((prev) => (prev ? { ...prev, avatar_url: publicUrl } : null))
   }
     } catch (error) {
       console.error("Error uploading image:", error)
@@ -345,6 +379,8 @@ export default function AdminPage() {
     } finally {
       if (type === "event" || type === "internal-banner") setUploadingImage(false)
       else if (type === "banner") setUploadingBanner(false)
+      else if (type === "organization") setUploadingOrgAvatar(false)
+      else if (type === "edit-organization") setUploadingEditOrgAvatar(false)
     }
   }
 
@@ -586,6 +622,66 @@ await supabase.from("events").insert({
     loadData()
   }
 
+  const createOrganization = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSavingOrganization(true)
+
+    try {
+      const supabase = createBrowserClient()
+      const slug = newOrganization.slug.trim() || generateSlug(newOrganization.name)
+
+      await supabase.from("organizations").insert({
+        name: newOrganization.name,
+        slug,
+        avatar_url: newOrganization.avatar_url || null,
+        email: newOrganization.email.trim().toLowerCase(),
+        password_hash: newOrganization.password_hash,
+        is_active: true,
+      })
+
+      setNewOrganization({ name: "", slug: "", avatar_url: "", email: "", password_hash: "" })
+      alert("Organizacion creada exitosamente")
+      loadData()
+    } catch (error) {
+      console.error("Error creating organization:", error)
+      alert("Error al crear la organizacion. Verifica que el email no este ya en uso.")
+    } finally {
+      setSavingOrganization(false)
+    }
+  }
+
+  const updateOrganization = async () => {
+    if (!editingOrganization) return
+    const supabase = createBrowserClient()
+
+    await supabase
+      .from("organizations")
+      .update({
+        name: editingOrganization.name,
+        slug: editingOrganization.slug,
+        avatar_url: editingOrganization.avatar_url || null,
+        email: editingOrganization.email.trim().toLowerCase(),
+        password_hash: editingOrganization.password_hash,
+      })
+      .eq("id", editingOrganization.id)
+
+    setEditingOrganization(null)
+    loadData()
+  }
+
+  const toggleOrganization = async (id: string, isActive: boolean) => {
+    const supabase = createBrowserClient()
+    await supabase.from("organizations").update({ is_active: !isActive }).eq("id", id)
+    loadData()
+  }
+
+  const deleteOrganization = async (id: string) => {
+    if (!confirm("¿Seguro que deseas eliminar esta organizacion? Sus eventos no se borraran, pero quedaran sin organizacion asociada.")) return
+    const supabase = createBrowserClient()
+    await supabase.from("organizations").delete().eq("id", id)
+    loadData()
+  }
+
   const loadGallery = async (eventId: string) => {
     const supabase = createBrowserClient()
     const { data } = await supabase
@@ -757,6 +853,7 @@ const uploadGalleryImage = async (file: File) => {
             { id: "contacts", icon: Mail, label: "Contacto General", badge: 0 },
             { id: "banners", icon: ImageIcon, label: "Banners", badge: 0 },
             { id: "gallery", icon: ImageIcon, label: "Galeria", badge: 0 },
+            { id: "organizations", icon: Users, label: "Organizaciones", badge: 0 },
           ].map(({ id, icon: Icon, label, badge }) => (
             <button
               key={id}
@@ -815,6 +912,7 @@ const uploadGalleryImage = async (file: File) => {
             {activeTab === "contacts" && "Contacto General"}
             {activeTab === "banners" && "Banners Destacados"}
             {activeTab === "gallery" && "Galeria de Fotos"}
+            {activeTab === "organizations" && "Organizaciones"}
           </h1>
         </header>
 
@@ -1634,6 +1732,146 @@ const uploadGalleryImage = async (file: File) => {
             )}
           </div>
         )}
+
+        {activeTab === "organizations" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-bold text-lg mb-4">Crear Organizacion</h2>
+              <form onSubmit={createOrganization} className="space-y-4 p-4 rounded-xl bg-card border-2 border-border">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Nombre *</label>
+                  <Input
+                    value={newOrganization.name}
+                    onChange={(e) => setNewOrganization({ ...newOrganization, name: e.target.value })}
+                    placeholder="Ej: Agroexpo Paraguay"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">URL (slug)</label>
+                  <Input
+                    value={newOrganization.slug}
+                    onChange={(e) => setNewOrganization({ ...newOrganization, slug: e.target.value })}
+                    placeholder={newOrganization.name ? generateSlug(newOrganization.name) : "agroexpo-paraguay"}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Si lo dejas vacio se genera automaticamente a partir del nombre. Define la URL /organizador/[slug]
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Foto de perfil</label>
+                  <div className="flex items-center gap-4">
+                    {newOrganization.avatar_url && (
+                      <img
+                        src={newOrganization.avatar_url || "/placeholder.svg"}
+                        alt="Preview"
+                        className="w-16 h-16 object-cover rounded-full border-2 border-border"
+                      />
+                    )}
+                    <label className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg cursor-pointer hover:bg-muted/80">
+                      <Upload className="h-4 w-4" />
+                      {uploadingOrgAvatar ? "Subiendo..." : "Subir foto"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handleImageUpload(file, "organization")
+                        }}
+                        disabled={uploadingOrgAvatar}
+                      />
+                    </label>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Email de acceso *</label>
+                    <Input
+                      type="email"
+                      value={newOrganization.email}
+                      onChange={(e) => setNewOrganization({ ...newOrganization, email: e.target.value })}
+                      placeholder="organizacion@email.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Contraseña de acceso *</label>
+                    <Input
+                      type="text"
+                      value={newOrganization.password_hash}
+                      onChange={(e) => setNewOrganization({ ...newOrganization, password_hash: e.target.value })}
+                      placeholder="Contraseña para su panel"
+                      required
+                    />
+                  </div>
+                </div>
+                <Button type="submit" disabled={savingOrganization}>
+                  {savingOrganization ? "Guardando..." : "Crear Organizacion"}
+                </Button>
+              </form>
+            </div>
+
+            <div>
+              <h2 className="font-bold text-lg mb-3">Organizaciones Existentes</h2>
+              {organizations.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No hay organizaciones todavia</p>
+              ) : (
+                <div className="space-y-3">
+                  {organizations.map((org) => (
+                    <div
+                      key={org.id}
+                      className={cn(
+                        "p-4 rounded-xl border-2 transition-all",
+                        org.is_active ? "bg-card border-primary/50" : "bg-muted/50 border-border opacity-60",
+                      )}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center shrink-0">
+                          {org.avatar_url ? (
+                            <img src={org.avatar_url} alt={org.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-lg font-bold text-muted-foreground">{org.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold truncate">{org.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">/organizador/{org.slug} · {org.email}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => setEditingOrganization(org)}
+                            className="p-2 rounded-lg bg-muted text-muted-foreground hover:bg-primary/20 hover:text-primary transition-all"
+                            title="Editar"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => toggleOrganization(org.id, org.is_active)}
+                            className={cn(
+                              "p-2 rounded-lg transition-all",
+                              org.is_active ? "bg-green-500/20 text-green-500" : "bg-muted text-muted-foreground",
+                            )}
+                            title={org.is_active ? "Desactivar" : "Activar"}
+                          >
+                            {org.is_active ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                          </button>
+                          <button
+                            onClick={() => deleteOrganization(org.id)}
+                            className="p-2 rounded-lg bg-muted text-muted-foreground hover:bg-red-500/20 hover:text-red-500 transition-all"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         </main>
       </div>
 
@@ -2139,6 +2377,88 @@ const uploadGalleryImage = async (file: File) => {
                 Cancelar
               </Button>
               <Button onClick={updateEvent} className="flex-1">
+                Guardar Cambios
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingOrganization && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border-2 border-border rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Editar Organizacion</h3>
+              <button onClick={() => setEditingOrganization(null)} className="p-2 rounded-lg hover:bg-muted">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Nombre</label>
+                <Input
+                  value={editingOrganization.name}
+                  onChange={(e) => setEditingOrganization({ ...editingOrganization, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">URL (slug)</label>
+                <Input
+                  value={editingOrganization.slug}
+                  onChange={(e) => setEditingOrganization({ ...editingOrganization, slug: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cuidado: si lo cambias, la URL /organizador/{editingOrganization.slug} dejara de funcionar y la nueva sera /organizador/[nuevo-slug]
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Foto de perfil</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center shrink-0">
+                    {editingOrganization.avatar_url ? (
+                      <img src={editingOrganization.avatar_url} alt={editingOrganization.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-bold text-muted-foreground">{editingOrganization.name.charAt(0)}</span>
+                    )}
+                  </div>
+                  <label className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg cursor-pointer hover:bg-muted/80">
+                    <Upload className="h-4 w-4" />
+                    {uploadingEditOrgAvatar ? "Subiendo..." : "Cambiar foto"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleImageUpload(file, "edit-organization")
+                      }}
+                      disabled={uploadingEditOrgAvatar}
+                    />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Email de acceso</label>
+                <Input
+                  type="email"
+                  value={editingOrganization.email}
+                  onChange={(e) => setEditingOrganization({ ...editingOrganization, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Contraseña de acceso</label>
+                <Input
+                  type="text"
+                  value={editingOrganization.password_hash}
+                  onChange={(e) => setEditingOrganization({ ...editingOrganization, password_hash: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button variant="outline" onClick={() => setEditingOrganization(null)} className="flex-1">
+                Cancelar
+              </Button>
+              <Button onClick={updateOrganization} className="flex-1">
                 Guardar Cambios
               </Button>
             </div>

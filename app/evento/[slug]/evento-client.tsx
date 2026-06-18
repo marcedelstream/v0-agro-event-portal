@@ -174,7 +174,17 @@ export function EventoClientPage({ slug }: EventoClientPageProps) {
   today.setHours(12, 0, 0, 0)
   const daysUntilEvent = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
-  const eventDuration = endDate ? Math.ceil((endDate.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 1
+  const startDateOnly = new Date(`${event.date}T00:00:00`)
+  const endDateOnly = event.end_date ? new Date(`${event.end_date}T00:00:00`) : null
+  const eventDuration = endDateOnly
+    ? Math.round((endDateOnly.getTime() - startDateOnly.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    : 1
+
+  // "Finalizado" debe depender del ultimo dia del evento (end_date), no del primero,
+  // para que un evento de varios dias no aparezca finalizado mientras todavia esta en curso.
+  const lastEventDay = endDateOnly || startDateOnly
+  const daysUntilEventEnd = Math.ceil((lastEventDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  const eventHasEnded = daysUntilEventEnd < 0
 
   return (
     <div className="min-h-screen bg-background">
@@ -225,7 +235,7 @@ export function EventoClientPage({ slug }: EventoClientPageProps) {
                 {eventDuration} dias
               </span>
             )}
-            {daysUntilEvent < 0 && (
+            {eventHasEnded && (
               <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-semibold">
                 Finalizado
               </span>

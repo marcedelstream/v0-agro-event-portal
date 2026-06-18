@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Calendar, Star, ChevronRight } from "lucide-react"
+import { ArrowLeft, Calendar, Star, ChevronRight, History, ChevronDown, ChevronUp } from "lucide-react"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { categoryLabels, categoryColors, categoryGradients } from "@/lib/events-data"
@@ -16,6 +16,7 @@ interface Event {
   slug: string | null
   description: string
   date: string
+  end_date?: string | null
   time: string
   location: string
   category: string
@@ -28,6 +29,7 @@ export default function CategoryPage() {
   const slug = params.slug as string
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
+  const [showPastEvents, setShowPastEvents] = useState(false)
 
   const categoryName = categoryLabels[slug] || slug
 
@@ -46,6 +48,19 @@ export default function CategoryPage() {
     }
     loadEvents()
   }, [slug])
+
+  // Un evento se considera pasado recien cuando termina su ultimo dia (end_date si existe, sino date)
+  const isEventPast = (event: Event) => {
+    const lastDay = new Date(`${event.end_date || event.date}T00:00:00`)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return lastDay.getTime() < today.getTime()
+  }
+
+  const upcomingEvents = events.filter((event) => !isEventPast(event))
+  const pastEvents = events
+    .filter((event) => isEventPast(event))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr + "T12:00:00").toLocaleDateString("es-ES", {
@@ -71,6 +86,69 @@ export default function CategoryPage() {
 
   const getEventUrl = (event: Event) => {
     return `/evento/${event.slug || event.id}`
+  }
+
+  const renderEventRow = (event: Event, isPast: boolean) => {
+    const daysText = getDaysUntil(event.date)
+
+    return (
+      <Link
+        key={event.id}
+        href={getEventUrl(event)}
+        className={cn(
+          "flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-200 group hover:scale-[1.01] active:scale-[0.99]",
+          event.is_premium
+            ? "border-yellow-500/50 bg-gradient-to-r from-yellow-500/10 to-transparent hover:shadow-lg hover:shadow-yellow-500/10"
+            : "border-border bg-card hover:bg-muted/50 hover:shadow-md",
+          isPast && "opacity-60",
+        )}
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div
+            className={cn(
+              "shrink-0 w-1 h-10 rounded-full bg-gradient-to-b",
+              categoryGradients[event.category] || "from-gray-500 to-gray-500/50",
+            )}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              {event.is_premium && (
+                <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 shrink-0" />
+              )}
+              <h3
+                className={cn(
+                  "font-semibold text-sm truncate group-hover:text-primary transition-colors",
+                  event.is_premium && "text-yellow-500 group-hover:text-yellow-400",
+                )}
+              >
+                {event.title}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+              <span>{formatDate(event.date)}</span>
+              <span>•</span>
+              <span className="truncate">{event.location}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span
+            className={cn(
+              "text-xs font-medium px-2 py-1 rounded-lg",
+              isPast
+                ? "bg-muted text-muted-foreground"
+                : daysText === "Hoy" || daysText === "Mañana"
+                  ? "bg-primary/20 text-primary"
+                  : "bg-muted text-foreground",
+            )}
+          >
+            {daysText}
+          </span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+        </div>
+      </Link>
+    )
   }
 
   return (
@@ -117,70 +195,32 @@ export default function CategoryPage() {
               <p className="text-sm mt-1">Vuelve pronto para ver nuevos eventos</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {events.map((event) => {
-                const daysText = getDaysUntil(event.date)
-                const isPast = daysText.startsWith("Hace")
+            <div className="space-y-4">
+              {upcomingEvents.length > 0 ? (
+                <div className="space-y-2">{upcomingEvents.map((event) => renderEventRow(event, false))}</div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-2xl border-2 border-dashed border-border">
+                  <Calendar className="h-10 w-10 mx-auto mb-2 opacity-40" />
+                  <p className="font-semibold text-sm">No hay próximos eventos en esta categoría</p>
+                </div>
+              )}
 
-                return (
-                  <Link
-                    key={event.id}
-                    href={getEventUrl(event)}
-                    className={cn(
-                      "flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-200 group hover:scale-[1.01] active:scale-[0.99]",
-                      event.is_premium
-                        ? "border-yellow-500/50 bg-gradient-to-r from-yellow-500/10 to-transparent hover:shadow-lg hover:shadow-yellow-500/10"
-                        : "border-border bg-card hover:bg-muted/50 hover:shadow-md",
-                      isPast && "opacity-60",
-                    )}
+              {pastEvents.length > 0 && (
+                <div>
+                  <button
+                    onClick={() => setShowPastEvents((prev) => !prev)}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-border bg-muted/40 hover:bg-muted/70 text-sm font-semibold text-muted-foreground transition-all"
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div
-                        className={cn(
-                          "shrink-0 w-1 h-10 rounded-full bg-gradient-to-b",
-                          categoryGradients[event.category] || "from-gray-500 to-gray-500/50",
-                        )}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          {event.is_premium && (
-                            <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 shrink-0" />
-                          )}
-                          <h3
-                            className={cn(
-                              "font-semibold text-sm truncate group-hover:text-primary transition-colors",
-                              event.is_premium && "text-yellow-500 group-hover:text-yellow-400",
-                            )}
-                          >
-                            {event.title}
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                          <span>{formatDate(event.date)}</span>
-                          <span>•</span>
-                          <span className="truncate">{event.location}</span>
-                        </div>
-                      </div>
-                    </div>
+                    <History className="h-4 w-4" />
+                    {showPastEvents ? "Ocultar histórico" : `Ver histórico (${pastEvents.length})`}
+                    {showPastEvents ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={cn(
-                          "text-xs font-medium px-2 py-1 rounded-lg",
-                          isPast
-                            ? "bg-muted text-muted-foreground"
-                            : daysText === "Hoy" || daysText === "Mañana"
-                              ? "bg-primary/20 text-primary"
-                              : "bg-muted text-foreground",
-                        )}
-                      >
-                        {daysText}
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                    </div>
-                  </Link>
-                )
-              })}
+                  {showPastEvents && (
+                    <div className="space-y-2 mt-3">{pastEvents.map((event) => renderEventRow(event, true))}</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

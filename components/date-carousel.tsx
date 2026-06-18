@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect, useCallback } from "react"
-import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock, Plus, Star, RotateCcw, Sparkles } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock, Plus, Star, RotateCcw } from "lucide-react"
 import { categoryLabels, categoryColors, categoryGradients, type AgroEvent } from "@/lib/events-data"
 import { departmentsList } from "@/lib/paraguay-data"
 import Link from "next/link"
@@ -11,6 +11,7 @@ import { SubmitEventForm } from "@/components/submit-event-form"
 import { EventSearch } from "@/components/event-search"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { PromoBanner } from "@/components/promo-banner"
+import { OrganizationsRow } from "@/components/organizations-row"
 
 interface InlineCalendarProps {
   currentMonth: Date
@@ -166,7 +167,6 @@ interface Banner {
 
 export function DateCarousel() {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const bannerScrollRef = useRef<HTMLDivElement>(null)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [showCalendar, setShowCalendar] = useState(false)
   const [showSubmitForm, setShowSubmitForm] = useState(false)
@@ -233,6 +233,9 @@ export function DateCarousel() {
   }, [])
 
 // Auto-scroll para banners (cada 5 segundos)
+// El autoplay se reinicia cada vez que currentBannerIndex cambia, ya sea
+// por el propio autoplay o por una navegacion manual (flecha, punto o swipe),
+// asi nunca compiten por el mismo cambio de banner.
 useEffect(() => {
   if (banners.length <= 1) return
 
@@ -241,44 +244,31 @@ useEffect(() => {
   }, 5000)
 
   return () => clearInterval(interval)
-}, [banners.length])
+}, [banners.length, currentBannerIndex])
 
-// Sincronizar scroll del banner con el índice actual
-const isMounted = useRef(false)
-useEffect(() => {
-  if (!bannerScrollRef.current || banners.length === 0) return
+const goToBanner = (index: number) => {
+  setCurrentBannerIndex(index)
+}
+const goToPrevBanner = () => {
+  setCurrentBannerIndex((prev) => (prev === 0 ? banners.length - 1 : prev - 1))
+}
+const goToNextBanner = () => {
+  setCurrentBannerIndex((prev) => (prev === banners.length - 1 ? 0 : prev + 1))
+}
 
-  // Saltar la sincronización en el primer render (el scroll empieza en 0 = índice 0)
-  if (!isMounted.current) {
-    isMounted.current = true
-    // Si el índice inicial no es 0 (por el random), sincronizar sin animación
-    if (currentBannerIndex !== 0) {
-      const containerWidth = bannerScrollRef.current.offsetWidth
-      bannerScrollRef.current.scrollTo({
-        left: currentBannerIndex * containerWidth,
-        behavior: "instant" as ScrollBehavior,
-      })
-    }
-    return
-  }
-
-  const containerWidth = bannerScrollRef.current.offsetWidth
-  bannerScrollRef.current.scrollTo({
-    left: currentBannerIndex * containerWidth,
-    behavior: "smooth",
-  })
-}, [currentBannerIndex, banners.length])
-
-// Detectar scroll manual del banner
-const handleBannerScroll = () => {
-  if (!bannerScrollRef.current || banners.length <= 1) return
-  
-  const scrollLeft = bannerScrollRef.current.scrollLeft
-  const containerWidth = bannerScrollRef.current.offsetWidth
-  const newIndex = Math.round(scrollLeft / containerWidth)
-  
-  if (newIndex !== currentBannerIndex && newIndex >= 0 && newIndex < banners.length) {
-    setCurrentBannerIndex(newIndex)
+// Swipe tactil para mobile (el slide en si se anima por transform, no por scroll)
+const touchStartX = useRef(0)
+const handleBannerTouchStart = (e: React.TouchEvent) => {
+  touchStartX.current = e.touches[0].clientX
+}
+const handleBannerTouchEnd = (e: React.TouchEvent) => {
+  if (banners.length <= 1) return
+  const delta = e.changedTouches[0].clientX - touchStartX.current
+  if (Math.abs(delta) < 40) return
+  if (delta < 0) {
+    goToNextBanner()
+  } else {
+    goToPrevBanner()
   }
 }
 
@@ -352,48 +342,58 @@ const handleBannerScroll = () => {
 
         {banners.length > 0 ? (
           <div className="relative">
-            {/* Contenedor deslizable de banners */}
-<div
-              ref={bannerScrollRef}
-              onScroll={handleBannerScroll}
-              className="flex overflow-x-auto md:overflow-x-hidden snap-x snap-mandatory scrollbar-hide"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            {/* Contenedor deslizable de banners - animado por transform, no por scroll */}
+            <div
+              className="h-48 md:h-64 rounded-2xl overflow-hidden"
+              onTouchStart={handleBannerTouchStart}
+              onTouchEnd={handleBannerTouchEnd}
             >
-              {banners.map((banner, index) => (
-                <Link
-                  key={banner.id}
-                  href={
-                    banner.events
-                      ? `/evento/${banner.events.slug || banner.events.id}`
-                      : banner.link_url || "#"
-                  }
-                  className="min-w-full snap-center block h-32 rounded-2xl overflow-hidden relative group"
-                >
-                  <img
-                    src={banner.events?.image_url || banner.image_url || "/placeholder.svg"}
-                    alt={banner.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-4">
-                    <span className="text-xs text-primary font-semibold mb-1">EVENTO DESTACADO</span>
-                    <p className="text-white font-bold">{banner.events?.title || banner.title}</p>
-                    {banner.events && (
-                      <div className="flex items-center gap-3 text-white/80 text-xs mt-1">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(banner.events.date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-                          {banner.events.end_date &&
-                            ` - ${new Date(banner.events.end_date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {banner.events.location}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              ))}
+              <div
+                className="flex h-full transition-transform duration-500 ease-out"
+                style={{
+                  width: `${banners.length * 100}%`,
+                  transform: `translateX(-${(100 / banners.length) * currentBannerIndex}%)`,
+                }}
+              >
+                {banners.map((banner, index) => (
+                  <Link
+                    key={banner.id}
+                    href={
+                      banner.events
+                        ? `/evento/${banner.events.slug || banner.events.id}`
+                        : banner.link_url || "#"
+                    }
+                    className="h-full shrink-0 relative group"
+                    style={{ width: `${100 / banners.length}%` }}
+                  >
+                    <img
+                      src={banner.events?.image_url || banner.image_url || "/placeholder.svg"}
+                      alt={banner.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-transparent flex flex-col justify-center px-4 md:px-6 max-w-[78%] md:max-w-[55%]">
+                      <span className="text-xs text-primary font-bold mb-1.5 tracking-wide">EVENTO DESTACADO</span>
+                      <p className="text-white font-bold text-lg md:text-2xl leading-tight line-clamp-2">
+                        {banner.events?.title || banner.title}
+                      </p>
+                      {banner.events && (
+                        <div className="flex flex-col gap-1 text-white/80 text-xs mt-2">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 shrink-0" />
+                            {new Date(banner.events.date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                            {banner.events.end_date &&
+                              ` - ${new Date(banner.events.end_date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{banner.events.location}</span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
 
             {/* Indicadores de posición */}
@@ -404,7 +404,7 @@ const handleBannerScroll = () => {
                     key={index}
                     onClick={(e) => {
                       e.preventDefault()
-                      setCurrentBannerIndex(index)
+                      goToBanner(index)
                     }}
                     className={cn(
                       "h-2 rounded-full transition-all",
@@ -418,27 +418,27 @@ const handleBannerScroll = () => {
               </div>
             )}
 
-            {/* Flechas de navegacion - solo visible en PC */}
+            {/* Flechas de navegacion - solo visible en PC, abajo para no tapar el titulo */}
             {banners.length > 1 && (
               <>
                 <button
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    setCurrentBannerIndex((prev) => (prev === 0 ? banners.length - 1 : prev - 1))
+                    goToPrevBanner()
                   }}
-                  className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 items-center justify-center text-white transition-all z-20 shadow-lg"
+                  className="hidden md:flex absolute left-3 bottom-3 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 items-center justify-center text-white transition-all z-20 shadow-lg"
                   aria-label="Banner anterior"
                 >
-                  <ChevronLeft className="h-7 w-7" />
+                  <ChevronLeft className="h-6 w-6" />
                 </button>
                 <button
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    setCurrentBannerIndex((prev) => (prev === banners.length - 1 ? 0 : prev + 1))
+                    goToNextBanner()
                   }}
-                  className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 items-center justify-center text-white transition-all z-20 shadow-lg"
+                  className="hidden md:flex absolute right-3 bottom-3 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 items-center justify-center text-white transition-all z-20 shadow-lg"
                   aria-label="Siguiente banner"
                 >
                   <ChevronRight className="h-7 w-7" />
@@ -459,10 +459,7 @@ const handleBannerScroll = () => {
 
         <div className="flex items-center justify-between mb-3 relative">
           <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-accent" />
-              Proximos Eventos
-            </h2>
+            <h2 className="text-xl font-bold">Proximos Eventos</h2>
             <p className="text-sm text-muted-foreground capitalize font-medium">{formatMonthYear(selectedDate)}</p>
           </div>
           <Button
@@ -653,6 +650,10 @@ const handleBannerScroll = () => {
 
         <div className="mt-6">
           <PromoBanner />
+        </div>
+
+        <div className="mt-6">
+          <OrganizationsRow />
         </div>
 
         <div className="mt-6">

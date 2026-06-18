@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Poppins } from "next/font/google"
+import { Poppins, DM_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SplashScreen } from "@/components/splash-screen"
@@ -9,6 +9,13 @@ import "./globals.css"
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-poppins",
+})
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-dm-sans",
 })
 
 export const metadata: Metadata = {
@@ -47,7 +54,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="bg-background" suppressHydrationWarning>
-      <body className={`font-sans antialiased`}>
+      <body className={`${poppins.variable} ${dmSans.variable} font-sans antialiased`}>
         <ThemeProvider>
           <SplashScreen>{children}</SplashScreen>
         </ThemeProvider>

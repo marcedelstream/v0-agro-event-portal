@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Gamepad2, Store, Sparkles } from "lucide-react"
+import { Gamepad2, Store } from "lucide-react"
 
 export function PromoBanner() {
   return (
@@ -7,13 +7,9 @@ export function PromoBanner() {
       href="https://agrojuego.com"
       target="_blank"
       rel="noopener noreferrer"
-      className="relative overflow-hidden flex items-center gap-3 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/20 via-primary/10 to-accent/20 p-4 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/20 hover:border-primary/50 group"
+      className="relative overflow-hidden flex items-center gap-3 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/20 via-primary/10 to-accent/20 p-4 transition-colors hover:shadow-md hover:border-primary/50 group"
     >
-      {/* Decorative sparkles */}
-      <Sparkles className="absolute top-2 right-2 h-4 w-4 text-accent/50 animate-pulse" />
-      <Sparkles className="absolute bottom-2 right-8 h-3 w-3 text-primary/40 animate-pulse delay-300" />
-
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 group-hover:rotate-6 group-hover:scale-110 transition-all duration-300 shadow-lg shadow-primary/30">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/30">
         <Gamepad2 className="h-6 w-6 text-primary-foreground" />
       </div>
       <div className="flex-1 min-w-0">
@@ -35,9 +31,9 @@ export function AgroconectaBanner() {
       href="https://www.instagram.com/agroconectapy"
       target="_blank"
       rel="noopener noreferrer"
-      className="relative overflow-hidden flex items-center gap-3 rounded-2xl border-2 border-accent/30 bg-gradient-to-r from-accent/20 via-accent/10 to-secondary/10 p-4 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-accent/20 hover:border-accent/50 group"
+      className="relative overflow-hidden flex items-center gap-3 rounded-2xl border-2 border-accent/30 bg-gradient-to-r from-accent/20 via-accent/10 to-secondary/10 p-4 transition-colors hover:shadow-md hover:border-accent/50 group"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent/60 group-hover:rotate-6 group-hover:scale-110 transition-all duration-300 shadow-lg shadow-accent/30">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent/60 shadow-lg shadow-accent/30">
         <svg
           className="h-6 w-6 text-accent-foreground"
           viewBox="0 0 24 24"
@@ -65,9 +61,9 @@ export function ProveedoresBanner() {
   return (
     <Link
       href="/proveedores"
-      className="relative overflow-hidden flex items-center gap-3 rounded-2xl border-2 border-blue-400/40 bg-gradient-to-r from-blue-500/25 via-blue-400/15 to-cyan-400/20 p-4 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/25 hover:border-blue-400/60 group"
+      className="relative overflow-hidden flex items-center gap-3 rounded-2xl border-2 border-blue-400/40 bg-gradient-to-r from-blue-500/25 via-blue-400/15 to-cyan-400/20 p-4 transition-colors hover:shadow-md hover:border-blue-400/60 group"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 group-hover:rotate-6 group-hover:scale-110 transition-all duration-300 shadow-lg shadow-blue-500/40">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/40">
         <Store className="h-6 w-6 text-white" />
       </div>
       <div className="flex-1 min-w-0">
