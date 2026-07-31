@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Sprout, Sun, Moon } from "lucide-react"
+import { Sun, Moon } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
 
 export function Header() {
@@ -10,11 +10,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-gradient-to-r from-background via-primary/5 to-background backdrop-blur supports-[backdrop-filter]:bg-background/80 px-[0] py-2.5">
       <div className="container mx-auto flex h-10 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 group">
-          
-          <span className="font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text leading-7 text-xl">
-            Eventos Agro
-          </span>
+        <Link href="/" className="flex items-center group">
+          <img
+            src={theme === "dark" ? "/logo.png" : "/logo-claro.png"}
+            alt="Eventos Agro"
+            className="h-10 w-auto object-contain"
+          />
         </Link>
         <button
           onClick={toggleTheme}

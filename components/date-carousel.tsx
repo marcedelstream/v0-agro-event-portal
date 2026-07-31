@@ -341,110 +341,46 @@ const handleBannerTouchEnd = (e: React.TouchEvent) => {
         <EventSearch />
 
         {banners.length > 0 ? (
-          <div className="relative">
-            {/* Contenedor deslizable de banners - animado por transform, no por scroll */}
+          <div>
+            <p className="text-xs font-bold text-primary tracking-widest uppercase mb-3">Eventos destacados</p>
             <div
-              className="h-48 md:h-64 rounded-2xl overflow-hidden"
-              onTouchStart={handleBannerTouchStart}
-              onTouchEnd={handleBannerTouchEnd}
+              className="flex gap-3 overflow-x-auto pb-2"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              <div
-                className="flex h-full transition-transform duration-500 ease-out"
-                style={{
-                  width: `${banners.length * 100}%`,
-                  transform: `translateX(-${(100 / banners.length) * currentBannerIndex}%)`,
-                }}
-              >
-                {banners.map((banner, index) => (
-                  <Link
-                    key={banner.id}
-                    href={
-                      banner.events
-                        ? `/evento/${banner.events.slug || banner.events.id}`
-                        : banner.link_url || "#"
-                    }
-                    className="h-full shrink-0 relative group"
-                    style={{ width: `${100 / banners.length}%` }}
-                  >
+              {banners.map((banner) => (
+                <Link
+                  key={banner.id}
+                  href={banner.events ? `/evento/${banner.events.slug || banner.events.id}` : banner.link_url || "#"}
+                  className="shrink-0 w-56 rounded-2xl border-2 border-border bg-card overflow-hidden group hover:border-primary/50 hover:shadow-md transition-all duration-200"
+                >
+                  <div className="h-36 overflow-hidden">
                     <img
                       src={banner.events?.image_url || banner.image_url || "/placeholder.svg"}
                       alt={banner.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-transparent flex flex-col justify-center px-4 md:px-6 max-w-[78%] md:max-w-[55%]">
-                      <span className="text-xs text-primary font-bold mb-1.5 tracking-wide">EVENTO DESTACADO</span>
-                      <p className="text-white font-bold text-lg md:text-2xl leading-tight line-clamp-2">
-                        {banner.events?.title || banner.title}
-                      </p>
-                      {banner.events && (
-                        <div className="flex flex-col gap-1 text-white/80 text-xs mt-2">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3 shrink-0" />
-                            {new Date(banner.events.date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-                            {banner.events.end_date &&
-                              ` - ${new Date(banner.events.end_date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3 shrink-0" />
-                            <span className="truncate">{banner.events.location}</span>
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Indicadores de posición */}
-            {banners.length > 1 && (
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                {banners.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      goToBanner(index)
-                    }}
-                    className={cn(
-                      "h-2 rounded-full transition-all",
-                      index === currentBannerIndex 
-                        ? "bg-primary w-6" 
-                        : "bg-white/50 hover:bg-white/80 w-2"
+                  </div>
+                  <div className="px-3 py-2.5">
+                    <p className="font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                      {banner.events?.title || banner.title}
+                    </p>
+                    {banner.events && (
+                      <div className="flex flex-col gap-0.5 text-xs text-muted-foreground mt-1.5">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 shrink-0" />
+                          {new Date(banner.events.date + "T12:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })}
+                          {banner.events.end_date && ` — ${new Date(banner.events.end_date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{banner.events.location}</span>
+                        </span>
+                      </div>
                     )}
-                    aria-label={`Ir al banner ${index + 1}`}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Flechas de navegacion - solo visible en PC, abajo para no tapar el titulo */}
-            {banners.length > 1 && (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    goToPrevBanner()
-                  }}
-                  className="hidden md:flex absolute left-3 bottom-3 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 items-center justify-center text-white transition-all z-20 shadow-lg"
-                  aria-label="Banner anterior"
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    goToNextBanner()
-                  }}
-                  className="hidden md:flex absolute right-3 bottom-3 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 items-center justify-center text-white transition-all z-20 shadow-lg"
-                  aria-label="Siguiente banner"
-                >
-                  <ChevronRight className="h-7 w-7" />
-                </button>
-              </>
-            )}
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="h-28 rounded-2xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 border-2 border-dashed border-primary/30 flex items-center justify-center overflow-hidden relative">
@@ -639,13 +575,13 @@ const handleBannerTouchEnd = (e: React.TouchEvent) => {
             ))
           )}
 
-          <button
-            onClick={() => setShowSubmitForm(true)}
+          <Link
+            href="/publicar-evento"
             className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-primary/30 text-primary hover:text-primary hover:border-primary hover:bg-primary/5 transition-all duration-200 font-semibold hover:scale-[1.01] active:scale-[0.99]"
           >
             <Plus className="h-5 w-5" />
             <span>Agregar evento</span>
-          </button>
+          </Link>
         </div>
 
         <div className="mt-6">

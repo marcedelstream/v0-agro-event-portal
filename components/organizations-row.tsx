@@ -34,7 +34,7 @@ export function OrganizationsRow() {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Organizaciones</h3>
+      <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Convenios</h3>
       <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
         {organizations.map((org) => (
           <Link

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { compressImage } from "@/lib/image-utils"
 import { categoryLabels } from "@/lib/events-data"
-import { departmentsList, getCities } from "@/lib/paraguay-data"
+import { departmentsList, getCities, southAmericanCountries } from "@/lib/paraguay-data"
 
 interface Organization {
   id: string
@@ -350,26 +350,45 @@ export default function OrganizadorPanelPage() {
                   className="w-full h-10 px-3 rounded-md border border-input bg-background"
                   required
                 >
-                  <option value="">Seleccionar departamento</option>
-                  {departmentsList.map((dep) => (
-                    <option key={dep} value={dep}>{dep}</option>
-                  ))}
+                  <option value="">Seleccionar</option>
+                  <optgroup label="Paraguay">
+                    {departmentsList.map((dep) => (
+                      <option key={dep} value={dep}>{dep}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Internacional">
+                    <option value="Internacional">Internacional</option>
+                  </optgroup>
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Ciudad *</label>
-                <select
-                  value={newEvent.city}
-                  onChange={(e) => setNewEvent({ ...newEvent, city: e.target.value })}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                  required
-                  disabled={!newEvent.department}
-                >
-                  <option value="">Seleccionar ciudad</option>
-                  {newEvent.department && getCities(newEvent.department).map((city) => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
+                <label className="text-sm font-medium mb-1.5 block">{newEvent.department === "Internacional" ? "País *" : "Ciudad *"}</label>
+                {newEvent.department === "Internacional" ? (
+                  <select
+                    value={newEvent.city}
+                    onChange={(e) => setNewEvent({ ...newEvent, city: e.target.value })}
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    required
+                  >
+                    <option value="">Seleccionar país</option>
+                    {southAmericanCountries.map((country) => (
+                      <option key={country} value={country}>{country}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <select
+                    value={newEvent.city}
+                    onChange={(e) => setNewEvent({ ...newEvent, city: e.target.value })}
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    required
+                    disabled={!newEvent.department}
+                  >
+                    <option value="">Seleccionar ciudad</option>
+                    {newEvent.department && getCities(newEvent.department).map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
             <div>

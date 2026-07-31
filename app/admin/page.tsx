@@ -27,6 +27,8 @@ import {
   SortDesc,
   LayoutDashboard,
   Users,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,7 +36,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { compressImage } from "@/lib/image-utils"
 import { categoryLabels } from "@/lib/events-data"
-import { departmentsList, getCities } from "@/lib/paraguay-data"
+import { departmentsList, getCities, southAmericanCountries } from "@/lib/paraguay-data"
 
 type Tab = "dashboard" | "events" | "approved-events" | "providers" | "contacts" | "event-contacts" | "banners" | "create-event" | "gallery" | "organizations"
 
@@ -622,6 +624,28 @@ await supabase.from("events").insert({
     loadData()
   }
 
+  const moveBanner = async (index: number, direction: "up" | "down") => {
+    const swapIndex = direction === "up" ? index - 1 : index + 1
+    if (swapIndex < 0 || swapIndex >= banners.length) return
+
+    const supabase = createBrowserClient()
+    const a = banners[index]
+    const b = banners[swapIndex]
+
+    // Actualizar estado local inmediatamente para UX fluida
+    const updated = [...banners]
+    updated[index] = { ...a, display_order: b.display_order }
+    updated[swapIndex] = { ...b, display_order: a.display_order }
+    updated.sort((x, y) => x.display_order - y.display_order)
+    setBanners(updated)
+
+    // Persistir en Supabase
+    await Promise.all([
+      supabase.from("banners").update({ display_order: b.display_order }).eq("id", a.id),
+      supabase.from("banners").update({ display_order: a.display_order }).eq("id", b.id),
+    ])
+  }
+
   const createOrganization = async (e: React.FormEvent) => {
     e.preventDefault()
     setSavingOrganization(true)
@@ -1118,16 +1142,22 @@ const uploadGalleryImage = async (file: File) => {
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Categoría *</label>
                   <select
-                    value={newEvent.category}
-                    onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
+                    value={Object.keys(categoryLabels).includes(newEvent.category) ? newEvent.category : "otro"}
+                    onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value === "otro" ? "" : e.target.value })}
                     className="w-full h-10 px-3 rounded-md border border-input bg-background"
                   >
                     {Object.entries(categoryLabels).map(([key, label]) => (
-                      <option key={key} value={key}>
-                        {label}
-                      </option>
+                      <option key={key} value={key}>{label}</option>
                     ))}
                   </select>
+                  {(newEvent.category === "" || !Object.keys(categoryLabels).filter(k => k !== "otro").includes(newEvent.category)) && (
+                    <Input
+                      className="mt-2"
+                      value={newEvent.category === "otro" ? "" : newEvent.category}
+                      onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
+                      placeholder="Nombre de la categoría personalizada"
+                    />
+                  )}
                 </div>
               </div>
               <div>
@@ -1141,33 +1171,56 @@ const uploadGalleryImage = async (file: File) => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Departamento *</label>
+                  <label className="text-sm font-medium mb-1.5 block">Departamento / País *</label>
                   <select
                     value={newEvent.department}
                     onChange={(e) => setNewEvent({ ...newEvent, department: e.target.value, city: "" })}
                     className="w-full h-10 px-3 rounded-md border border-input bg-background"
                     required
                   >
-                    <option value="">Seleccionar departamento</option>
-                    {departmentsList.map((dep) => (
-                      <option key={dep} value={dep}>{dep}</option>
-                    ))}
+                    <option value="">Seleccionar</option>
+                    <optgroup label="Paraguay">
+                      {departmentsList.map((dep) => (
+                        <option key={dep} value={dep}>{dep}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Internacional">
+                      <option value="Internacional">Internacional</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Ciudad *</label>
-                  <select
-                    value={newEvent.city}
-                    onChange={(e) => setNewEvent({ ...newEvent, city: e.target.value })}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                    required
-                    disabled={!newEvent.department}
-                  >
-                    <option value="">Seleccionar ciudad</option>
-                    {newEvent.department && getCities(newEvent.department).map((city) => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    {newEvent.department === "Internacional" ? "País *" : "Ciudad *"}
+                  </label>
+                  {newEvent.department === "Internacional" ? (
+                    <>
+                      <select
+                        value={newEvent.city}
+                        onChange={(e) => setNewEvent({ ...newEvent, city: e.target.value })}
+                        className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                        required
+                      >
+                        <option value="">Seleccionar país</option>
+                        {southAmericanCountries.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <select
+                      value={newEvent.city}
+                      onChange={(e) => setNewEvent({ ...newEvent, city: e.target.value })}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                      required
+                      disabled={!newEvent.department}
+                    >
+                      <option value="">Seleccionar ciudad</option>
+                      {newEvent.department && getCities(newEvent.department).map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
               <div>
@@ -1614,7 +1667,7 @@ const uploadGalleryImage = async (file: File) => {
                 <p className="text-muted-foreground text-sm">No hay banners</p>
               ) : (
                 <div className="space-y-3">
-                  {banners.map((banner) => (
+                  {banners.map((banner, index) => (
                     <div
                       key={banner.id}
                       className={cn(
@@ -1623,18 +1676,39 @@ const uploadGalleryImage = async (file: File) => {
                       )}
                     >
                       <div className="flex items-center gap-4">
+                        {/* Botones de orden */}
+                        <div className="flex flex-col gap-0.5 shrink-0">
+                          <button
+                            onClick={() => moveBanner(index, "up")}
+                            disabled={index === 0}
+                            className="p-1 rounded hover:bg-muted disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                            title="Subir"
+                          >
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                          <button
+                            onClick={() => moveBanner(index, "down")}
+                            disabled={index === banners.length - 1}
+                            className="p-1 rounded hover:bg-muted disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                            title="Bajar"
+                          >
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        </div>
+
                         {banner.image_url && (
                           <img
                             src={banner.image_url || "/placeholder.svg"}
                             alt={banner.title}
-                            className="w-24 h-12 object-cover rounded-lg"
+                            className="w-24 h-12 object-cover rounded-lg shrink-0"
                           />
                         )}
-                        <div className="flex-1">
-                          <p className="font-bold">{banner.title}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm">{banner.title}</p>
                           <p className="text-xs text-muted-foreground truncate">{banner.link_url}</p>
+                          <p className="text-xs text-muted-foreground/60 mt-0.5">Posición {index + 1}</p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
                             onClick={() => toggleBanner(banner.id, banner.is_active)}
                             className={cn(
@@ -2070,16 +2144,22 @@ const uploadGalleryImage = async (file: File) => {
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Categoría</label>
                   <select
-                    value={editingEvent.category}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, category: e.target.value })}
+                    value={Object.keys(categoryLabels).includes(editingEvent.category) ? editingEvent.category : "otro"}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, category: e.target.value === "otro" ? "" : e.target.value })}
                     className="w-full h-10 px-3 rounded-md border border-input bg-background"
                   >
                     {Object.entries(categoryLabels).map(([key, label]) => (
-                      <option key={key} value={key}>
-                        {label}
-                      </option>
+                      <option key={key} value={key}>{label}</option>
                     ))}
                   </select>
+                  {(editingEvent.category === "" || !Object.keys(categoryLabels).filter(k => k !== "otro").includes(editingEvent.category)) && (
+                    <Input
+                      className="mt-2"
+                      value={editingEvent.category === "otro" ? "" : editingEvent.category}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, category: e.target.value })}
+                      placeholder="Nombre de la categoría personalizada"
+                    />
+                  )}
                 </div>
               </div>
 <div>

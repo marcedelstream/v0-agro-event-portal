@@ -41,6 +41,7 @@ export const categoryLabels: Record<string, string> = {
   webinar: "Webinar",
   dia_de_campo: "Dia de Campo",
   ambiental: "Ambiental",
+  otro: "Otro",
 }
 
 export const categoryColors: Record<string, string> = {
@@ -55,6 +56,7 @@ export const categoryColors: Record<string, string> = {
   webinar: "bg-indigo-500/20 text-indigo-400",
   dia_de_campo: "bg-lime-500/20 text-lime-400",
   ambiental: "bg-sky-500/20 text-sky-400",
+  otro: "bg-muted text-muted-foreground",
 }
 
 export const categoryGradients: Record<string, string> = {
@@ -69,6 +71,7 @@ export const categoryGradients: Record<string, string> = {
   webinar: "from-indigo-500 to-indigo-500/50",
   dia_de_campo: "from-lime-500 to-lime-500/50",
   ambiental: "from-sky-500 to-sky-500/50",
+  otro: "from-gray-500 to-gray-500/50",
 }
 
 export const events: AgroEvent[] = []
