@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ChevronLeft, Plus, Phone, Mail, Globe, Search, Sun, Moon, MessageCircle, X, CheckCircle } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Search, Sun, Moon, MessageCircle, X, CheckCircle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -16,11 +16,13 @@ const categories: ProviderCategory[] = ["audiovisual", "catering", "decoracion",
 interface Provider {
   id: string
   name: string
+  slug: string | null
   category: ProviderCategory
   description: string
   contact_email: string
   contact_phone: string
   website: string | null
+  avatar_url: string | null
   is_approved: boolean
 }
 
@@ -179,60 +181,29 @@ export default function ProveedoresPage() {
             </div>
           ) : (
             filteredProviders.map((provider) => (
-              <div
+              <Link
                 key={provider.id}
-                className="p-4 rounded-2xl border-2 border-border bg-card hover:shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99]"
+                href={`/proveedores/${provider.slug || provider.id}`}
+                className="flex items-center gap-4 p-4 rounded-2xl border-2 border-border bg-card hover:border-primary/50 hover:shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99]"
               >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className={cn(
-                          "text-xs px-2 py-0.5 rounded-full font-semibold",
-                          providerCategoryColors[provider.category] || "bg-gray-500/20 text-gray-500",
-                        )}
-                      >
-                        {providerCategoryLabels[provider.category] || provider.category}
-                      </span>
-                    </div>
-                    <h3 className="font-bold">{provider.name}</h3>
+                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center shrink-0">
+                  {provider.avatar_url ? (
+                    <img src={provider.avatar_url} alt={provider.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl font-bold text-muted-foreground">{provider.name.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={cn("text-xs px-2 py-0.5 rounded-full font-semibold", providerCategoryColors[provider.category] || "bg-gray-500/20 text-gray-500")}>
+                      {providerCategoryLabels[provider.category] || provider.category}
+                    </span>
                   </div>
+                  <h3 className="font-bold truncate">{provider.name}</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{provider.description}</p>
                 </div>
-
-                <p className="text-sm text-muted-foreground mb-3">{provider.description}</p>
-
-                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                  {provider.contact_phone && (
-                    <a
-                      href={`tel:${provider.contact_phone}`}
-                      className="flex items-center gap-1 hover:text-primary transition-colors"
-                    >
-                      <Phone className="h-3 w-3" />
-                      {provider.contact_phone}
-                    </a>
-                  )}
-                  {provider.contact_email && (
-                    <a
-                      href={`mailto:${provider.contact_email}`}
-                      className="flex items-center gap-1 hover:text-primary transition-colors"
-                    >
-                      <Mail className="h-3 w-3" />
-                      Email
-                    </a>
-                  )}
-                  {provider.website && (
-                    <a
-                      href={provider.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 hover:text-primary transition-colors"
-                    >
-                      <Globe className="h-3 w-3" />
-                      Web
-                    </a>
-                  )}
-                </div>
-              </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+              </Link>
             ))
           )}
 

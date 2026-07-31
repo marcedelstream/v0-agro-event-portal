@@ -350,7 +350,7 @@ const handleBannerTouchEnd = (e: React.TouchEvent) => {
               {banners.map((banner) => (
                 <Link
                   key={banner.id}
-                  href={banner.events ? `/evento/${banner.events.slug || banner.events.id}` : banner.link_url || "#"}
+                  href={banner.events?.slug ? `/evento/${banner.events.slug}` : banner.link_url || "#"}
                   className="shrink-0 w-56 rounded-2xl border-2 border-border bg-card overflow-hidden group hover:border-primary/50 hover:shadow-md transition-all duration-200"
                 >
                   <div className="h-36 overflow-hidden">

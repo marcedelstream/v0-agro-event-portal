@@ -29,6 +29,7 @@ import {
   Users,
   ChevronUp,
   ChevronDown,
+  Pencil,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -103,9 +104,13 @@ interface ApprovedEvent {
 interface ApprovedProvider {
   id: string
   name: string
+  slug: string | null
   category: string
   contact_email: string
   contact_phone: string
+  website: string | null
+  description: string | null
+  avatar_url: string | null
   is_approved: boolean
 }
 
@@ -186,6 +191,8 @@ export default function AdminPage() {
   const [editingEvent, setEditingEvent] = useState<ApprovedEvent | null>(null)
   const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null)
   const [uploadingEditOrgAvatar, setUploadingEditOrgAvatar] = useState(false)
+  const [editingProvider, setEditingProvider] = useState<ApprovedProvider | null>(null)
+  const [uploadingEditProviderAvatar, setUploadingEditProviderAvatar] = useState(false)
 
   // Sidebar mobile
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -332,11 +339,12 @@ export default function AdminPage() {
     setIsAuthenticated(false)
   }
 
-  const handleImageUpload = async (file: File, type: "event" | "banner" | "edit-event" | "internal-banner" | "edit-internal-banner" | "edit-gacetilla" | "organization" | "edit-organization") => {
+  const handleImageUpload = async (file: File, type: "event" | "banner" | "edit-event" | "internal-banner" | "edit-internal-banner" | "edit-gacetilla" | "organization" | "edit-organization" | "edit-provider") => {
     if (type === "event" || type === "internal-banner") setUploadingImage(true)
     else if (type === "banner") setUploadingBanner(true)
     else if (type === "organization") setUploadingOrgAvatar(true)
     else if (type === "edit-organization") setUploadingEditOrgAvatar(true)
+    else if (type === "edit-provider") setUploadingEditProviderAvatar(true)
 
     try {
       // Comprimir imagen antes de subir (max 1200px, calidad 85%)
@@ -374,6 +382,8 @@ export default function AdminPage() {
     setNewOrganization((prev) => ({ ...prev, avatar_url: publicUrl }))
   } else if (type === "edit-organization" && editingOrganization) {
     setEditingOrganization((prev) => (prev ? { ...prev, avatar_url: publicUrl } : null))
+  } else if (type === "edit-provider" && editingProvider) {
+    setEditingProvider((prev) => (prev ? { ...prev, avatar_url: publicUrl } : null))
   }
     } catch (error) {
       console.error("Error uploading image:", error)
@@ -383,6 +393,7 @@ export default function AdminPage() {
       else if (type === "banner") setUploadingBanner(false)
       else if (type === "organization") setUploadingOrgAvatar(false)
       else if (type === "edit-organization") setUploadingEditOrgAvatar(false)
+      else if (type === "edit-provider") setUploadingEditProviderAvatar(false)
     }
   }
 
@@ -467,6 +478,30 @@ await supabase.from("events").insert({
     setEditLinkUrl("")
     loadData()
     alert("Evento actualizado")
+  }
+
+  const generateProviderSlug = (name: string) =>
+    name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+
+  const updateProvider = async () => {
+    if (!editingProvider) return
+    const supabase = createBrowserClient()
+    await supabase
+      .from("providers")
+      .update({
+        name: editingProvider.name,
+        slug: editingProvider.slug || generateProviderSlug(editingProvider.name),
+        category: editingProvider.category,
+        contact_email: editingProvider.contact_email,
+        contact_phone: editingProvider.contact_phone,
+        website: editingProvider.website || null,
+        description: editingProvider.description || null,
+        avatar_url: editingProvider.avatar_url || null,
+      })
+      .eq("id", editingProvider.id)
+    setEditingProvider(null)
+    loadData()
+    alert("Proveedor actualizado")
   }
 
   const toggleEventPremium = async (id: string, currentPremium: boolean) => {
@@ -1472,17 +1507,35 @@ const uploadGalleryImage = async (file: File) => {
                       key={provider.id}
                       className="flex items-center justify-between p-4 rounded-xl bg-card border-2 border-border"
                     >
-                      <div>
-                        <p className="font-bold">{provider.name}</p>
-                        <p className="text-sm text-muted-foreground">{provider.category}</p>
+                      <div className="flex items-center gap-3">
+                        {provider.avatar_url ? (
+                          <img src={provider.avatar_url} alt={provider.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 text-lg font-bold text-muted-foreground">
+                            {provider.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-bold">{provider.name}</p>
+                          <p className="text-sm text-muted-foreground">{provider.category}</p>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => deleteProvider(provider.id)}
-                        className="p-2 rounded-lg bg-muted text-muted-foreground hover:bg-red-500/20 hover:text-red-500 transition-all"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setEditingProvider(provider)}
+                          className="p-2 rounded-lg bg-muted text-muted-foreground hover:bg-primary/20 hover:text-primary transition-all"
+                          title="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteProvider(provider.id)}
+                          className="p-2 rounded-lg bg-muted text-muted-foreground hover:bg-red-500/20 hover:text-red-500 transition-all"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2539,6 +2592,113 @@ const uploadGalleryImage = async (file: File) => {
                 Cancelar
               </Button>
               <Button onClick={updateOrganization} className="flex-1">
+                Guardar Cambios
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Editar Proveedor */}
+      {editingProvider && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border-2 border-border rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Editar Proveedor</h3>
+              <button onClick={() => setEditingProvider(null)} className="p-2 rounded-lg hover:bg-muted">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Foto de perfil</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center shrink-0">
+                    {editingProvider.avatar_url ? (
+                      <img src={editingProvider.avatar_url} alt={editingProvider.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-bold text-muted-foreground">{editingProvider.name.charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <label className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg cursor-pointer hover:bg-muted/80">
+                    <Upload className="h-4 w-4" />
+                    {uploadingEditProviderAvatar ? "Subiendo..." : "Cambiar foto"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleImageUpload(file, "edit-provider")
+                      }}
+                      disabled={uploadingEditProviderAvatar}
+                    />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Nombre</label>
+                <Input
+                  value={editingProvider.name}
+                  onChange={(e) => setEditingProvider({ ...editingProvider, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Slug (URL personalizada)</label>
+                <Input
+                  value={editingProvider.slug || ""}
+                  onChange={(e) => setEditingProvider({ ...editingProvider, slug: e.target.value })}
+                  placeholder={generateProviderSlug(editingProvider.name)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL: /proveedores/{editingProvider.slug || generateProviderSlug(editingProvider.name)}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Categoría</label>
+                <Input
+                  value={editingProvider.category}
+                  onChange={(e) => setEditingProvider({ ...editingProvider, category: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Descripción</label>
+                <textarea
+                  value={editingProvider.description || ""}
+                  onChange={(e) => setEditingProvider({ ...editingProvider, description: e.target.value })}
+                  className="w-full px-3 py-2 rounded-md border border-input bg-background resize-none"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Email</label>
+                <Input
+                  type="email"
+                  value={editingProvider.contact_email}
+                  onChange={(e) => setEditingProvider({ ...editingProvider, contact_email: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Teléfono</label>
+                <Input
+                  value={editingProvider.contact_phone}
+                  onChange={(e) => setEditingProvider({ ...editingProvider, contact_phone: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Sitio web</label>
+                <Input
+                  value={editingProvider.website || ""}
+                  onChange={(e) => setEditingProvider({ ...editingProvider, website: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button variant="outline" onClick={() => setEditingProvider(null)} className="flex-1">
+                Cancelar
+              </Button>
+              <Button onClick={updateProvider} className="flex-1">
                 Guardar Cambios
               </Button>
             </div>
