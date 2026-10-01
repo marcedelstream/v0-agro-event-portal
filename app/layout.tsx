@@ -1,21 +1,15 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Poppins, DM_Sans } from "next/font/google"
+import { Figtree } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SplashScreen } from "@/components/splash-screen"
 import "./globals.css"
 
-const poppins = Poppins({
+const figtree = Figtree({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-poppins",
-})
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-dm-sans",
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-figtree",
 })
 
 export const metadata: Metadata = {
@@ -44,7 +38,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#22c55e",
+  themeColor: "#0b1620",
 }
 
 export default function RootLayout({
@@ -54,7 +48,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="bg-background" suppressHydrationWarning>
-      <body className={`${poppins.variable} ${dmSans.variable} font-sans antialiased`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")}catch(e){}`,
+          }}
+        />
+      </head>
+      <body className={`${figtree.variable} font-sans antialiased`}>
         <ThemeProvider>
           <SplashScreen>{children}</SplashScreen>
         </ThemeProvider>

@@ -105,7 +105,7 @@ export default function OrganizadorPage() {
           </Link>
 
           <div className="flex items-center gap-4 rounded-2xl p-6 mb-6 bg-gradient-to-br from-primary/15 to-primary/5">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center shrink-0">
+            <div className="w-16 h-16 rounded-full overflow-hidden border border-border bg-muted flex items-center justify-center shrink-0">
               {organization.avatar_url ? (
                 <img src={organization.avatar_url} alt={organization.name} className="w-full h-full object-cover" />
               ) : (
@@ -121,7 +121,7 @@ export default function OrganizadorPage() {
           </div>
 
           {events.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-2xl border-2 border-dashed border-border">
+            <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-2xl border border-dashed border-border">
               <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
               <p className="font-semibold">Esta organizacion aun no tiene eventos publicados</p>
             </div>

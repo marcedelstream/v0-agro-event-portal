@@ -168,7 +168,7 @@ export default function UbicacionPage() {
               ))}
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-2xl border-2 border-dashed border-border">
+            <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-2xl border border-dashed border-border">
               <MapPin className="h-12 w-12 mx-auto mb-3 opacity-40" />
               <p className="font-semibold">No hay eventos en esta ubicacion</p>
               <p className="text-sm mt-1">

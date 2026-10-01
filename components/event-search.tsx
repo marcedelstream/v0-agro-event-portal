@@ -63,19 +63,19 @@ export function EventSearch() {
   return (
     <div ref={searchRef} className="relative mb-4">
       <div className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-primary/20">
-          <Search className="h-4 w-4 text-primary" />
+        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+          <Search className="h-4 w-4 text-muted-foreground" />
         </div>
         <input
           type="text"
-          placeholder="Buscar eventos..."
+          placeholder="Buscá ferias, remates, días de campo..."
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
             setShowResults(true)
           }}
           onFocus={() => query && setShowResults(true)}
-          className="w-full h-12 pl-12 pr-10 rounded-2xl border-2 border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all duration-300 font-medium"
+          className="w-full h-12 pl-11 pr-10 rounded-full border border-border bg-card text-foreground placeholder:text-muted-foreground shadow-sm focus:outline-none focus:ring-4 focus:ring-brand-lime/30 focus:border-brand-lime transition-all duration-200"
         />
         {query && (
           <button
@@ -89,7 +89,7 @@ export function EventSearch() {
 
       {/* Search results dropdown */}
       {showResults && query.length >= 2 && (
-        <div className="absolute left-0 right-0 mt-2 z-50 bg-card/95 backdrop-blur-lg border-2 border-border rounded-2xl shadow-2xl max-h-72 overflow-y-auto">
+        <div className="absolute left-0 right-0 mt-2 z-50 bg-card/95 backdrop-blur-lg border border-border rounded-2xl shadow-2xl max-h-72 overflow-y-auto">
           {loading ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">Buscando...</div>
           ) : events.length === 0 ? (
@@ -105,7 +105,7 @@ export function EventSearch() {
                 onClick={() => setShowResults(false)}
                 className={cn(
                   "flex flex-col gap-1.5 px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-b-0",
-                  event.is_premium && "bg-gradient-to-r from-yellow-500/10 to-transparent",
+                  event.is_premium && "bg-brand-lime/10",
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ export function EventSearch() {
                     {categoryLabels[event.category] || event.category}
                   </span>
                   {event.is_premium && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-500/30 to-amber-500/30 text-yellow-500 font-medium">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-brand-lime text-brand-navy font-medium">
                       Premium
                     </span>
                   )}

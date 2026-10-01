@@ -22,12 +22,12 @@ export const providerCategoryLabels: Record<ProviderCategory, string> = {
 }
 
 export const providerCategoryColors: Record<ProviderCategory, string> = {
-  audiovisual: "bg-blue-500/20 text-blue-500",
-  catering: "bg-orange-500/20 text-orange-500",
-  decoracion: "bg-pink-500/20 text-pink-500",
-  stands: "bg-purple-500/20 text-purple-500",
-  logistica: "bg-cyan-500/20 text-cyan-500",
-  seguridad: "bg-red-500/20 text-red-500",
+  audiovisual: "bg-blue-500/12 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+  catering: "bg-orange-500/12 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
+  decoracion: "bg-pink-500/12 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300",
+  stands: "bg-purple-500/12 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300",
+  logistica: "bg-cyan-500/12 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  seguridad: "bg-red-500/12 text-red-700 dark:bg-red-500/15 dark:text-red-300",
 }
 
 export const providerCategoryIcons: Record<ProviderCategory, string> = {

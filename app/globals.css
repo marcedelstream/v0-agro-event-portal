@@ -2,76 +2,92 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Dark theme (default) - colores más vibrantes y juguetones */
+/*
+ * Linea grafica unificada con agroconecta.com.py
+ * Claro (default): fondo crema, texto azul noche, verde oliva como acento legible.
+ * Oscuro (.dark): fondo azul noche, verde lima como acento.
+ * --brand-* son los colores de marca fijos (no cambian con el tema).
+ */
 :root {
-  --background: oklch(0.14 0.02 280);
-  --foreground: oklch(0.98 0 0);
-  --card: oklch(0.2 0.025 280);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.2 0.025 280);
-  --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.72 0.22 145);
-  --primary-foreground: oklch(0.12 0.01 120);
-  --secondary: oklch(0.55 0.2 330);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.28 0.03 280);
-  --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.78 0.18 85);
-  --accent-foreground: oklch(0.12 0.01 120);
-  --destructive: oklch(0.65 0.25 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.35 0.04 280);
-  --input: oklch(0.28 0.03 280);
-  --ring: oklch(0.72 0.22 145);
-  --chart-1: oklch(0.72 0.22 145);
-  --chart-2: oklch(0.78 0.18 85);
-  --chart-3: oklch(0.6 0.18 200);
-  --chart-4: oklch(0.75 0.2 60);
-  --chart-5: oklch(0.65 0.25 25);
+  --brand-lime: #a4d233;
+  --brand-lime-dark: #8bb82b;
+  --brand-olive: #4e6b12;
+  --brand-navy: #0b1620;
+
+  --background: #f4f5f0;
+  --foreground: #0b1620;
+  --card: #ffffff;
+  --card-foreground: #0b1620;
+  --popover: #ffffff;
+  --popover-foreground: #0b1620;
+  --primary: #4e6b12;
+  --primary-foreground: #ffffff;
+  --secondary: #0b1620;
+  --secondary-foreground: #ffffff;
+  --muted: #eceee6;
+  --muted-foreground: #5a5f55;
+  --accent: #a4d233;
+  --accent-foreground: #0b1620;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e0e3da;
+  --input: #e0e3da;
+  --ring: #a4d233;
+  --chart-1: #4e6b12;
+  --chart-2: #a4d233;
+  --chart-3: #0b1620;
+  --chart-4: #1fa855;
+  --chart-5: #5a5f55;
   --radius: 1rem;
-  --sidebar: oklch(0.17 0.02 280);
-  --sidebar-foreground: oklch(0.98 0 0);
-  --sidebar-primary: oklch(0.72 0.22 145);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.28 0.03 280);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.35 0.04 280);
-  --sidebar-ring: oklch(0.72 0.22 145);
+  --sidebar: #eceee6;
+  --sidebar-foreground: #0b1620;
+  --sidebar-primary: #4e6b12;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e0e3da;
+  --sidebar-accent-foreground: #0b1620;
+  --sidebar-border: #e0e3da;
+  --sidebar-ring: #a4d233;
 }
 
-/* Light theme - colores más alegres */
-:root.light {
-  --background: oklch(0.98 0.01 90);
-  --foreground: oklch(0.2 0.02 280);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 280);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 280);
-  --primary: oklch(0.55 0.22 145);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.7 0.18 330);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.94 0.01 90);
-  --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.7 0.16 85);
-  --accent-foreground: oklch(0.2 0.02 280);
-  --border: oklch(0.88 0.02 90);
-  --input: oklch(0.94 0.01 90);
-  --ring: oklch(0.55 0.22 145);
-  --sidebar: oklch(0.96 0.01 90);
-  --sidebar-foreground: oklch(0.2 0.02 280);
-  --sidebar-primary: oklch(0.55 0.22 145);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.94 0.01 90);
-  --sidebar-accent-foreground: oklch(0.2 0.02 280);
-  --sidebar-border: oklch(0.88 0.02 90);
-  --sidebar-ring: oklch(0.55 0.22 145);
+:root.dark {
+  --background: #0a0a13;
+  --foreground: #ffffff;
+  --card: #12121c;
+  --card-foreground: #ffffff;
+  --popover: #12121c;
+  --popover-foreground: #ffffff;
+  --primary: #a4d233;
+  --primary-foreground: #0b1620;
+  --secondary: #ffffff;
+  --secondary-foreground: #0b1620;
+  --muted: #1a1a26;
+  --muted-foreground: #8b8b9a;
+  --accent: #a4d233;
+  --accent-foreground: #0b1620;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #2a2a3a;
+  --input: #2a2a3a;
+  --ring: #a4d233;
+  --chart-1: #a4d233;
+  --chart-2: #8bb82b;
+  --chart-3: #ffffff;
+  --chart-4: #1fa855;
+  --chart-5: #8b8b9a;
+  --sidebar: #12121c;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #a4d233;
+  --sidebar-primary-foreground: #0b1620;
+  --sidebar-accent: #1a1a26;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2a2a3a;
+  --sidebar-ring: #a4d233;
 }
 
 @theme inline {
-  /* Texto: DM Sans. Titulos: Poppins (ver --font-heading / clase font-heading) */
-  --font-sans: var(--font-dm-sans), "DM Sans Fallback", system-ui, sans-serif;
-  --font-heading: var(--font-poppins), "Poppins Fallback", system-ui, sans-serif;
+  /* Figtree en todo el sitio, igual que agroconecta.com.py */
+  --font-sans: var(--font-figtree), "Figtree Fallback", system-ui, sans-serif;
+  --font-heading: var(--font-figtree), "Figtree Fallback", system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -97,7 +113,11 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  /* Bordes más redondeados */
+  --color-brand-lime: var(--brand-lime);
+  --color-brand-lime-dark: var(--brand-lime-dark);
+  --color-brand-olive: var(--brand-olive);
+  --color-brand-navy: var(--brand-navy);
+  /* Bordes redondeados (tarjetas de 16px como agroconecta) */
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
@@ -121,5 +141,15 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
+    letter-spacing: -0.01em;
   }
+}
+
+/* Etiqueta chica en mayusculas sobre los titulos (estilo agroconecta) */
+@utility eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
 }

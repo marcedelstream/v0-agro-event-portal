@@ -79,7 +79,7 @@ export function CountdownTimer({ targetDate, className = "" }: CountdownTimerPro
   if (!timeLeft) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
-        <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-500 text-xs font-semibold animate-pulse">
+        <span className="px-3 py-1 rounded-full bg-brand-lime text-brand-navy text-xs font-semibold">
           En curso
         </span>
       </div>

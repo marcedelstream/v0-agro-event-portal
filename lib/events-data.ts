@@ -45,17 +45,17 @@ export const categoryLabels: Record<string, string> = {
 }
 
 export const categoryColors: Record<string, string> = {
-  agricultura: "bg-green-500/20 text-green-400",
-  ganaderia: "bg-amber-500/20 text-amber-400",
-  forestal: "bg-emerald-500/20 text-emerald-400",
-  sostenibilidad: "bg-teal-500/20 text-teal-400",
-  capacitaciones: "bg-blue-500/20 text-blue-400",
-  feria: "bg-orange-500/20 text-orange-400",
-  congreso: "bg-purple-500/20 text-purple-400",
-  workshop: "bg-cyan-500/20 text-cyan-400",
-  webinar: "bg-indigo-500/20 text-indigo-400",
-  dia_de_campo: "bg-lime-500/20 text-lime-400",
-  ambiental: "bg-sky-500/20 text-sky-400",
+  agricultura: "bg-green-500/12 text-green-700 dark:bg-green-500/15 dark:text-green-300",
+  ganaderia: "bg-amber-500/12 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  forestal: "bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  sostenibilidad: "bg-teal-500/12 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300",
+  capacitaciones: "bg-blue-500/12 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+  feria: "bg-orange-500/12 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
+  congreso: "bg-purple-500/12 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300",
+  workshop: "bg-cyan-500/12 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  webinar: "bg-indigo-500/12 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  dia_de_campo: "bg-lime-500/12 text-lime-700 dark:bg-lime-500/15 dark:text-lime-300",
+  ambiental: "bg-sky-500/12 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
   otro: "bg-muted text-muted-foreground",
 }
 

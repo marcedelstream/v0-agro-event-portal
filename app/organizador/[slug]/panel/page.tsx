@@ -218,7 +218,7 @@ export default function OrganizadorPanelPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
         <div className="w-full max-w-sm">
-          <div className="bg-card border-2 border-border rounded-2xl p-6 shadow-xl">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-xl">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Calendar className="h-8 w-8 text-primary" />
@@ -437,7 +437,7 @@ export default function OrganizadorPanelPage() {
           ) : (
             <div className="space-y-2">
               {events.map((event) => (
-                <div key={event.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-card border-2 border-border">
+                <div key={event.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-card border border-border">
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-sm truncate">{event.title}</p>
                     <p className="text-xs text-muted-foreground">

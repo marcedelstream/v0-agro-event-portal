@@ -1,26 +1,51 @@
 import type { Metadata } from "next"
+import { cache } from "react"
 import { createClient } from "@/lib/supabase/server"
-import { EventoClientPage } from "./evento-client"
+import { EventoClientPage, type EventDetail, type EventOrganization, type GalleryImage } from "./evento-client"
+
+// Se usa en generateMetadata y en la pagina; cache() evita consultar dos veces por request.
+const getEvent = cache(async (slug: string) => {
+  const supabase = await createClient()
+  const { data: event } = await supabase
+    .from("events")
+    .select("*")
+    .eq("slug", slug)
+    .eq("is_approved", true)
+    .maybeSingle()
+
+  if (!event) return null
+
+  const [galleryRes, organizationRes] = await Promise.all([
+    supabase
+      .from("event_gallery")
+      .select("id, image_url, caption")
+      .eq("event_id", event.id)
+      .order("display_order", { ascending: true }),
+    event.organization_id
+      ? supabase.from("organizations").select("name, slug, avatar_url").eq("id", event.organization_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
+
+  return {
+    event: event as EventDetail,
+    gallery: (galleryRes.data || []) as GalleryImage[],
+    organization: (organizationRes.data || null) as EventOrganization | null,
+  }
+})
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
-  const supabase = await createClient()
-  
-  const { data: event } = await supabase
-    .from("events")
-    .select("title, description, image_url, location, date")
-    .eq("slug", slug)
-    .eq("is_approved", true)
-    .single()
+  const result = await getEvent(slug)
 
-  if (!event) {
+  if (!result) {
     return {
       title: "Evento no encontrado | Eventos Agro",
       description: "El evento que buscas no existe o fue eliminado",
     }
   }
 
-  const eventDate = new Date(event.date + "T00:00:00")
+  const { event } = result
+  const eventDate = new Date(event.date + "T12:00:00")
   const formattedDate = eventDate.toLocaleDateString("es-ES", {
     day: "numeric",
     month: "long",
@@ -58,5 +83,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function EventoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  return <EventoClientPage slug={slug} />
+  const result = await getEvent(slug)
+
+  return (
+    <EventoClientPage
+      event={result?.event ?? null}
+      galleryImages={result?.gallery ?? []}
+      organization={result?.organization ?? null}
+    />
+  )
 }

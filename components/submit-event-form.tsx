@@ -241,7 +241,7 @@ export function SubmitEventForm({ onClose, selectedDate }: SubmitEventFormProps)
               </div>
 
               {/* Checkbox para evento de mas de un dia */}
-              <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-border cursor-pointer hover:border-primary/50 transition-colors">
+              <label className="flex items-center gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-primary/50 transition-colors">
                 <input
                   type="checkbox"
                   checked={isMultiDay}
@@ -249,7 +249,7 @@ export function SubmitEventForm({ onClose, selectedDate }: SubmitEventFormProps)
                     setIsMultiDay(e.target.checked)
                     if (!e.target.checked) setEventEndDate("")
                   }}
-                  className="w-5 h-5 rounded border-2 border-border accent-primary"
+                  className="w-5 h-5 rounded border border-border accent-primary"
                 />
                 <div>
                   <p className="font-medium">El evento dura mas de un dia</p>
@@ -297,7 +297,7 @@ export function SubmitEventForm({ onClose, selectedDate }: SubmitEventFormProps)
                   key={cat.value}
                   onClick={() => setEventCategory(cat.value)}
                   className={cn(
-                    "p-4 rounded-xl border-2 text-left transition-all",
+                    "p-4 rounded-xl border text-left transition-all",
                     eventCategory === cat.value
                       ? "border-primary bg-primary/10"
                       : "border-border hover:border-primary/50",
@@ -428,7 +428,7 @@ export function SubmitEventForm({ onClose, selectedDate }: SubmitEventFormProps)
                 </button>
               </div>
             ) : (
-              <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 transition-colors min-h-[200px]">
+              <label className="flex-1 flex flex-col items-center justify-center border border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 transition-colors min-h-[200px]">
                 <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
                 <span className="text-sm text-muted-foreground">Toca para seleccionar imagen</span>
                 <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />

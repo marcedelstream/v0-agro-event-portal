@@ -16,7 +16,7 @@ export function GacetillaButton({ titulo, imagen, texto }: GacetillaProps) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600/20 to-cyan-600/20 border border-blue-500/30 hover:border-blue-500/60 hover:scale-[1.02] transition-all text-sm font-semibold text-blue-400 w-full"
+        className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-card border border-border hover:border-foreground/30 transition-colors text-sm font-semibold w-full"
       >
         <Newspaper className="h-4 w-4 shrink-0" />
         <span>Gacetilla de prensa</span>
@@ -34,8 +34,8 @@ export function GacetillaButton({ titulo, imagen, texto }: GacetillaProps) {
             {/* Header */}
             <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-start justify-between gap-3 rounded-t-2xl">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <Newspaper className="h-4 w-4 text-blue-400" />
+                <div className="w-8 h-8 rounded-full bg-brand-lime/20 flex items-center justify-center">
+                  <Newspaper className="h-4 w-4 text-primary" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Gacetilla de prensa</p>

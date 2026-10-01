@@ -56,10 +56,10 @@ export function ContactButton() {
       {/* Botón de contacto */}
       <button
         onClick={() => setShowModal(true)}
-        className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 hover:border-primary hover:bg-primary/15 transition-all duration-200 group"
+        className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border border-border bg-card hover:shadow-lg hover:shadow-black/5 transition-shadow duration-200 group"
       >
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent shadow-lg group-hover:scale-110 transition-transform">
-          <MessageCircle className="h-5 w-5 text-primary-foreground" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-lime text-brand-navy">
+          <MessageCircle className="h-5 w-5" />
         </div>
         <div className="text-left">
           <p className="font-bold text-foreground">Contactanos</p>
@@ -72,7 +72,7 @@ export function ContactButton() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div
             className={cn(
-              "w-full max-w-md rounded-2xl border-2 border-border bg-card p-6 shadow-2xl",
+              "w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl",
               "animate-in fade-in zoom-in-95 duration-200",
             )}
           >

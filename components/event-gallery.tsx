@@ -76,7 +76,7 @@ export function EventGallery({ images }: EventGalleryProps) {
                 key={img.id}
                 onClick={() => setCurrent(i)}
                 className={cn(
-                  "shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all",
+                  "shrink-0 w-16 h-16 rounded-xl overflow-hidden border transition-all",
                   i === current ? "border-primary scale-105" : "border-transparent opacity-60 hover:opacity-100"
                 )}
               >

@@ -17,12 +17,19 @@ interface InlineCalendarProps {
   currentMonth: Date
   selectedDate: Date
   onSelectDate: (date: Date) => void
-  onClose: () => void
+  onClose?: () => void
   eventDates: Set<string>
 }
 
 function InlineCalendar({ currentMonth, selectedDate, onSelectDate, onClose, eventDates }: InlineCalendarProps) {
   const [viewMonth, setViewMonth] = useState(currentMonth)
+
+  // Si la fecha elegida pasa a otro mes (por ejemplo desde la tira de dias), el calendario la sigue
+  const currentYear = currentMonth.getFullYear()
+  const currentMonthIndex = currentMonth.getMonth()
+  useEffect(() => {
+    setViewMonth(new Date(currentYear, currentMonthIndex, 1))
+  }, [currentYear, currentMonthIndex])
 
   const firstDayOfMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1)
   const lastDayOfMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0)
@@ -47,7 +54,7 @@ function InlineCalendar({ currentMonth, selectedDate, onSelectDate, onClose, eve
   const hasEvents = (date: Date) => eventDates.has(formatDateKey(date))
 
   return (
-    <div className="bg-gradient-to-br from-card via-card to-primary/5 border-2 border-border rounded-2xl p-4 mb-4 shadow-xl">
+    <div className="bg-card border border-border rounded-2xl p-4 mb-4">
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={prevMonth}
@@ -55,8 +62,8 @@ function InlineCalendar({ currentMonth, selectedDate, onSelectDate, onClose, eve
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <span className="font-bold capitalize text-lg">
-          {viewMonth.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
+        <span className="font-bold text-lg">
+          {viewMonth.toLocaleDateString("es-ES", { month: "long", year: "numeric" }).replace(/^./, (c) => c.toUpperCase())}
         </span>
         <button
           onClick={nextMonth}
@@ -83,12 +90,12 @@ function InlineCalendar({ currentMonth, selectedDate, onSelectDate, onClose, eve
               if (day) onSelectDate(day)
             }}
             className={cn(
-              "h-11 w-full rounded-xl text-sm flex flex-col items-center justify-center relative transition-all duration-200",
+              "h-11 w-full rounded-xl text-sm flex flex-col items-center justify-center relative transition-colors duration-200",
               !day && "invisible",
-              day && "hover:bg-muted hover:scale-105 active:scale-95",
+              day && "hover:bg-muted active:scale-95",
               day &&
                 formatDateKey(day) === formatDateKey(selectedDate) &&
-                "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground scale-110 shadow-lg shadow-primary/30 z-10 font-bold",
+                "bg-brand-navy text-white dark:bg-brand-lime dark:text-brand-navy font-bold",
               day && hasEvents(day) && formatDateKey(day) !== formatDateKey(selectedDate) && "font-bold text-primary",
             )}
           >
@@ -107,12 +114,14 @@ function InlineCalendar({ currentMonth, selectedDate, onSelectDate, onClose, eve
         ))}
       </div>
 
-      <button
-        onClick={onClose}
-        className="mt-4 w-full py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-all font-medium"
-      >
-        Cerrar calendario
-      </button>
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="mt-4 w-full py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-all font-medium"
+        >
+          Cerrar calendario
+        </button>
+      )}
     </div>
   )
 }
@@ -335,295 +344,337 @@ const handleBannerTouchEnd = (e: React.TouchEvent) => {
     setSelectedDate(date)
   }
 
-  return (
-    <section className="py-4 md:py-6">
-      <div className="space-y-4">
-        <EventSearch />
+  const selectedDateLabel = selectedDate
+    .toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })
+    .replace(/^./, (c) => c.toUpperCase())
 
-        {banners.length > 0 ? (
-          <div>
-            <p className="text-xs font-bold text-primary tracking-widest uppercase mb-3">Eventos destacados</p>
-            <div
-              className="flex gap-3 overflow-x-auto pb-2"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-            >
-              {banners.map((banner) => (
-                <Link
-                  key={banner.id}
-                  href={banner.events?.slug ? `/evento/${banner.events.slug}` : banner.link_url || "#"}
-                  className="shrink-0 w-56 rounded-2xl border-2 border-border bg-card overflow-hidden group hover:border-primary/50 hover:shadow-md transition-all duration-200"
-                >
-                  <div className="h-36 overflow-hidden">
-                    <img
-                      src={banner.events?.image_url || banner.image_url || "/placeholder.svg"}
-                      alt={banner.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="px-3 py-2.5">
-                    <p className="font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                      {banner.events?.title || banner.title}
-                    </p>
-                    {banner.events && (
-                      <div className="flex flex-col gap-0.5 text-xs text-muted-foreground mt-1.5">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3 shrink-0" />
-                          {new Date(banner.events.date + "T12:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })}
-                          {banner.events.end_date && ` — ${new Date(banner.events.end_date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{banner.events.location}</span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="h-28 rounded-2xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 border-2 border-dashed border-primary/30 flex items-center justify-center overflow-hidden relative">
-            <div className="absolute inset-0 bg-[url('/agricultural-fair-banner-with-tractors.jpg')] bg-cover bg-center opacity-20" />
-            <div className="text-center z-10">
-              <p className="text-xs text-muted-foreground font-medium mb-1">Espacio publicitario</p>
-              <p className="text-sm font-bold text-primary">Eventos Patrocinados</p>
-              <p className="text-xs text-muted-foreground">Tu evento destacado aqui</p>
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between mb-3 relative">
-          <div>
-            <h2 className="text-xl font-bold">Proximos Eventos</h2>
-            <p className="text-sm text-muted-foreground capitalize font-medium">{formatMonthYear(selectedDate)}</p>
-          </div>
-          <Button
-            variant={showCalendar ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowCalendar(!showCalendar)}
+  const categoriesBlock = (
+    <div>
+      <p className="eyebrow mb-3">Explorar por categoría</p>
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(categoryLabels).map(([key, label]) => (
+          <Link
+            key={key}
+            href={`/categoria/${key}`}
             className={cn(
-              "flex items-center gap-2 rounded-xl font-semibold transition-all",
-              showCalendar && "shadow-lg shadow-primary/30",
+              "px-3 py-1.5 rounded-full text-xs font-semibold transition-opacity hover:opacity-80",
+              categoryColors[key],
             )}
           >
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">{showCalendar ? "Ocultar" : "Ver mes"}</span>
-          </Button>
-        </div>
+            {label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
 
-        {showCalendar ? (
-          <InlineCalendar
-            currentMonth={selectedDate}
-            selectedDate={selectedDate}
-            onSelectDate={handleCalendarSelect}
-            onClose={() => setShowCalendar(false)}
-            eventDates={eventDates}
-          />
-        ) : (
-          <>
-            {!isSelectedToday && (
-              <button
-                onClick={scrollToToday}
-                className="mb-2 flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors mx-auto font-semibold bg-primary/10 px-3 py-1.5 rounded-full"
-              >
-                <RotateCcw className="h-3 w-3" />
-                Volver a hoy
-              </button>
-            )}
+  const locationsBlock = (
+    <div>
+      <p className="eyebrow mb-3">Por ubicación</p>
+      <div className="flex flex-wrap gap-2">
+        {departmentsList.map((dep) => (
+          <Link
+            key={dep}
+            href={`/ubicacion/${encodeURIComponent(dep.toLowerCase().replace(/\s+/g, "-"))}`}
+            className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors border border-border bg-card hover:border-foreground/30"
+          >
+            {dep}
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
 
-            <div className="flex items-center gap-2 mb-4">
-              <button
-                onClick={() => scroll("left")}
-                className="hidden md:flex h-11 w-11 items-center justify-center rounded-xl border-2 border-border bg-card hover:bg-muted hover:scale-105 active:scale-95 transition-all shrink-0"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
+  return (
+    <section className="py-4 md:py-6 lg:py-10">
+      {/* Mobile: una columna. Desktop (lg): eventos a la izquierda + barra lateral fija a la derecha */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
+        <div className="min-w-0 space-y-4 lg:space-y-8">
+          {/* En desktop el buscador va en el hero de la home */}
+          <div className="lg:hidden">
+            <EventSearch />
+          </div>
 
+          {banners.length > 0 ? (
+            <div>
+              <p className="eyebrow mb-3">Eventos destacados</p>
               <div
-                ref={scrollRef}
-                className="flex gap-2.5 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
+                className="flex gap-3 overflow-x-auto pb-2 lg:gap-4 snap-x"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
-                {dates.map((date) => {
-                  const hasEvents = eventDates.has(formatDateKey(date))
-                  const past = isPast(date) && !isToday(date)
-
-                  return (
-                    <button
-                      key={formatDateKey(date)}
-                      onClick={() => handleDateClick(date)}
-                      className={cn(
-                        "flex flex-col items-center justify-center rounded-2xl border-2 transition-all duration-300 shrink-0",
-                        isSelected(date)
-                          ? "min-w-[76px] h-[88px] bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground border-primary scale-110 shadow-xl shadow-primary/40 z-10"
-                          : "min-w-[64px] h-[76px] bg-card border-border hover:border-primary/50 hover:scale-105 active:scale-95",
-                        isToday(date) && !isSelected(date) && "border-primary/50 bg-primary/5",
-                        past && !isSelected(date) && "opacity-50",
+                {banners.map((banner) => (
+                  <Link
+                    key={banner.id}
+                    href={banner.events?.slug ? `/evento/${banner.events.slug}` : banner.link_url || "#"}
+                    className="shrink-0 snap-start w-56 lg:w-[calc((100%-2rem)/3)] rounded-2xl border border-border bg-card overflow-hidden group hover:shadow-lg hover:shadow-black/5 transition-all duration-200"
+                  >
+                    <div className="h-36 lg:h-44 overflow-hidden">
+                      <img
+                        src={banner.events?.image_url || banner.image_url || "/placeholder.svg"}
+                        alt={banner.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="px-3 py-2.5 lg:px-4 lg:py-3.5">
+                      <p className="font-bold text-[15px] lg:text-base leading-snug line-clamp-2">
+                        {banner.events?.title || banner.title}
+                      </p>
+                      {banner.events && (
+                        <div className="flex flex-col gap-0.5 text-xs text-muted-foreground mt-1.5">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 shrink-0" />
+                            {new Date(banner.events.date + "T12:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })}
+                            {banner.events.end_date && ` — ${new Date(banner.events.end_date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{banner.events.location}</span>
+                          </span>
+                        </div>
                       )}
-                    >
-                      <span
-                        className={cn(
-                          "text-xs font-semibold",
-                          isSelected(date) ? "text-primary-foreground/80" : "text-muted-foreground",
-                        )}
-                      >
-                        {formatDayName(date)}
-                      </span>
-                      <span className={cn("font-bold", isSelected(date) ? "text-2xl" : "text-xl")}>
-                        {formatDayNumber(date)}
-                      </span>
-                      {hasEvents && (
-                        <span
-                          className={cn(
-                            "w-2 h-2 rounded-full mt-0.5",
-                            isSelected(date) ? "bg-primary-foreground" : "bg-gradient-to-r from-primary to-accent",
-                          )}
-                        />
-                      )}
-                    </button>
-                  )
-                })}
+                    </div>
+                  </Link>
+                ))}
               </div>
-
-              <button
-                onClick={() => scroll("right")}
-                className="hidden md:flex h-11 w-11 items-center justify-center rounded-xl border-2 border-border bg-card hover:bg-muted hover:scale-105 active:scale-95 transition-all shrink-0"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
-          </>
-        )}
-
-        <div className="space-y-2.5">
-          {loading ? (
-            <div className="text-center py-10">
-              <div className="animate-pulse space-y-3">
-                <div className="h-16 bg-muted rounded-2xl" />
-                <div className="h-16 bg-muted rounded-2xl" />
-              </div>
-            </div>
-          ) : eventsForSelectedDate.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground bg-gradient-to-br from-muted/30 to-transparent rounded-2xl border-2 border-dashed border-border">
-              <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
-              <p className="font-semibold">No hay eventos programados</p>
-              <p className="text-sm mt-1 mb-4">
-                {isPast(selectedDate) && !isToday(selectedDate)
-                  ? "Esta fecha ya paso"
-                  : "Selecciona otra fecha o envia un evento"}
-              </p>
             </div>
           ) : (
-            eventsForSelectedDate.map((event) => (
-              <Link
-                key={event.id}
-                href={`/evento/${event.slug || event.id}`}
-                className={cn(
-                  "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 group hover:scale-[1.01] active:scale-[0.99]",
-                  event.is_premium
-                    ? "border-yellow-500/50 bg-gradient-to-r from-yellow-500/15 via-amber-500/10 to-orange-500/5 hover:shadow-xl hover:shadow-yellow-500/20"
-                    : "border-border bg-card hover:bg-muted/50 hover:shadow-lg",
-                )}
-              >
-                <div
-                  className={cn(
-                    "shrink-0 w-1.5 h-12 rounded-full bg-gradient-to-b",
-                    categoryGradients[event.category] || "from-gray-500 to-gray-500/50",
-                  )}
-                />
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={cn(
-                        "text-xs px-2 py-0.5 rounded-full font-semibold",
-                        categoryColors[event.category] || "bg-gray-500/20 text-gray-400",
-                      )}
-                    >
-                      {categoryLabels[event.category] || event.category}
-                    </span>
-                    {event.is_premium && (
-                      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-500/30 to-amber-500/30 text-yellow-500 font-semibold">
-                        <Star className="h-3 w-3 fill-current" />
-                        Premium
-                      </span>
-                    )}
-                  </div>
-                  <h3
-                    className={cn(
-                      "font-bold text-sm truncate group-hover:text-primary transition-colors",
-                      event.is_premium && "text-yellow-500 group-hover:text-yellow-400",
-                    )}
-                  >
-                    {event.title}
-                  </h3>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {event.event_time}
-                    </span>
-                    <span className="flex items-center gap-1 truncate">
-                      <MapPin className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{event.location}</span>
-                    </span>
-                  </div>
-                </div>
-
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
-              </Link>
-            ))
+            <div className="h-28 rounded-2xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 border border-dashed border-primary/30 flex items-center justify-center overflow-hidden relative">
+              <div className="absolute inset-0 bg-[url('/agricultural-fair-banner-with-tractors.jpg')] bg-cover bg-center opacity-20" />
+              <div className="text-center z-10">
+                <p className="text-xs text-muted-foreground font-medium mb-1">Espacio publicitario</p>
+                <p className="text-sm font-bold text-primary">Eventos Patrocinados</p>
+                <p className="text-xs text-muted-foreground">Tu evento destacado aqui</p>
+              </div>
+            </div>
           )}
 
-          <Link
-            href="/publicar-evento"
-            className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-primary/30 text-primary hover:text-primary hover:border-primary hover:bg-primary/5 transition-all duration-200 font-semibold hover:scale-[1.01] active:scale-[0.99]"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Agregar evento</span>
-          </Link>
-        </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-3 relative">
+              <div>
+                <p className="eyebrow mb-1">Agenda</p>
+                <h2 className="text-2xl lg:text-3xl font-extrabold">Próximos eventos</h2>
+                <p className="text-sm text-muted-foreground font-medium">{formatMonthYear(selectedDate).replace(/^./, (c) => c.toUpperCase())}</p>
+              </div>
+              {/* En desktop el calendario del mes esta siempre visible en la barra lateral */}
+              <Button
+                variant={showCalendar ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="flex items-center gap-2 rounded-full font-semibold transition-all h-9 px-4 lg:hidden"
+              >
+                <Calendar className="h-4 w-4" />
+                <span className="hidden sm:inline">{showCalendar ? "Ocultar" : "Ver mes"}</span>
+              </Button>
+            </div>
 
-        <div className="mt-6">
-          <PromoBanner />
-        </div>
+            {showCalendar ? (
+              <div className="lg:hidden">
+                <InlineCalendar
+                  currentMonth={selectedDate}
+                  selectedDate={selectedDate}
+                  onSelectDate={handleCalendarSelect}
+                  onClose={() => setShowCalendar(false)}
+                  eventDates={eventDates}
+                />
+              </div>
+            ) : null}
 
-        <div className="mt-6">
-          <OrganizationsRow />
-        </div>
+            <div className={cn(showCalendar && "hidden lg:block")}>
+              <div className="flex items-center gap-2 mb-1">
+                <button
+                  onClick={() => scroll("left")}
+                  className="hidden md:flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card hover:bg-muted active:scale-95 transition-all shrink-0"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
 
-        <div className="mt-6">
-          <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Explorar por categoria</h3>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(categoryLabels).map(([key, label]) => (
-              <Link
-                key={key}
-                href={`/categoria/${key}`}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105",
-                  categoryColors[key],
+                <div
+                  ref={scrollRef}
+                  className="flex gap-2.5 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                >
+                  {dates.map((date) => {
+                    const hasEvents = eventDates.has(formatDateKey(date))
+                    const past = isPast(date) && !isToday(date)
+
+                    return (
+                      <button
+                        key={formatDateKey(date)}
+                        onClick={() => handleDateClick(date)}
+                        className={cn(
+                          "flex flex-col items-center justify-center rounded-2xl border transition-all duration-200 shrink-0 min-w-[64px] h-[76px]",
+                          isSelected(date)
+                            ? "bg-brand-navy text-white border-brand-navy dark:bg-brand-lime dark:text-brand-navy dark:border-brand-lime"
+                            : "bg-card border-border hover:border-foreground/30 active:scale-95",
+                          isToday(date) && !isSelected(date) && "border-primary",
+                          past && !isSelected(date) && "opacity-50",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "text-xs font-semibold",
+                            isSelected(date) ? "opacity-75" : "text-muted-foreground",
+                          )}
+                        >
+                          {formatDayName(date)}
+                        </span>
+                        <span className="font-extrabold text-xl">
+                          {formatDayNumber(date)}
+                        </span>
+                        {hasEvents && (
+                          <span
+                            className={cn(
+                              "w-2 h-2 rounded-full mt-0.5",
+                              isSelected(date) ? "bg-brand-lime dark:bg-brand-navy" : "bg-brand-lime",
+                            )}
+                          />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <button
+                  onClick={() => scroll("right")}
+                  className="hidden md:flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card hover:bg-muted active:scale-95 transition-all shrink-0"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Espacio siempre reservado: el boton aparece sin mover el resto de la pagina */}
+              <div className="flex h-8 items-center justify-center">
+                {!isSelectedToday && (
+                  <button
+                    onClick={scrollToToday}
+                    className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors font-semibold bg-primary/10 px-3 py-1.5 rounded-full"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Volver a hoy
+                  </button>
                 )}
+              </div>
+            </div>
+
+            <p className="hidden lg:block text-sm font-semibold text-muted-foreground">{selectedDateLabel}</p>
+
+            <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2 lg:gap-4">
+              {loading ? (
+                <>
+                  <div className="h-24 bg-muted rounded-2xl animate-pulse" />
+                  <div className="h-24 bg-muted rounded-2xl animate-pulse" />
+                </>
+              ) : eventsForSelectedDate.length === 0 ? (
+                <div className="lg:col-span-2 text-center py-10 text-muted-foreground rounded-2xl border border-dashed border-border">
+                  <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                  <p className="font-semibold">No hay eventos programados</p>
+                  <p className="text-sm mt-1 mb-4">
+                    {isPast(selectedDate) && !isToday(selectedDate)
+                      ? "Esta fecha ya paso"
+                      : "Selecciona otra fecha o envia un evento"}
+                  </p>
+                </div>
+              ) : (
+                eventsForSelectedDate.map((event) => (
+                  <Link
+                    key={event.id}
+                    href={`/evento/${event.slug || event.id}`}
+                    className={cn(
+                      "flex items-center gap-3 p-3 lg:p-4 rounded-2xl border bg-card transition-all duration-200 group hover:shadow-lg hover:shadow-black/5 active:scale-[0.99]",
+                      event.is_premium ? "border-brand-lime ring-1 ring-brand-lime/40" : "border-border",
+                    )}
+                  >
+                    {event.image_url ? (
+                      <img
+                        src={event.image_url}
+                        alt=""
+                        className="shrink-0 h-16 w-16 lg:h-20 lg:w-20 rounded-xl object-cover bg-muted"
+                      />
+                    ) : (
+                      <div
+                        className={cn(
+                          "shrink-0 w-1.5 h-12 rounded-full bg-gradient-to-b",
+                          categoryGradients[event.category] || "from-gray-500 to-gray-500/50",
+                        )}
+                      />
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className={cn(
+                            "text-xs px-2 py-0.5 rounded-full font-semibold",
+                            categoryColors[event.category] || "bg-gray-500/20 text-gray-400",
+                          )}
+                        >
+                          {categoryLabels[event.category] || event.category}
+                        </span>
+                        {event.is_premium && (
+                          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-brand-lime text-brand-navy font-semibold">
+                            <Star className="h-3 w-3 fill-current" />
+                            Premium
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-bold text-[15px] truncate lg:whitespace-normal lg:line-clamp-2">{event.title}</h3>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {event.event_time}
+                        </span>
+                        <span className="flex items-center gap-1 truncate">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{event.location}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                ))
+              )}
+
+              <Link
+                href="/publicar-evento"
+                className="lg:col-span-2 w-full flex items-center justify-center gap-2 p-4 rounded-2xl border border-dashed border-foreground/20 text-foreground hover:border-primary hover:bg-card transition-all duration-200 font-semibold active:scale-[0.99]"
               >
-                {label}
+                <Plus className="h-5 w-5" />
+                <span>Agregar evento</span>
               </Link>
-            ))}
+            </div>
+          </div>
+
+          <div className="mt-6 lg:hidden">
+            <PromoBanner />
+          </div>
+
+          <div className="mt-6 lg:mt-0">
+            <OrganizationsRow />
+          </div>
+
+          <div className="mt-6 space-y-4 lg:hidden">
+            {categoriesBlock}
+            {locationsBlock}
           </div>
         </div>
 
-        <div className="mt-4">
-          <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Por ubicacion</h3>
-          <div className="flex flex-wrap gap-2">
-            {departmentsList.map((dep) => (
-              <Link
-                key={dep}
-                href={`/ubicacion/${encodeURIComponent(dep.toLowerCase().replace(/\s+/g, "-"))}`}
-                className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25"
-              >
-                {dep}
-              </Link>
-            ))}
+        {/* Barra lateral (solo desktop) */}
+        <aside className="hidden lg:block">
+          <div className="space-y-8">
+            <div>
+              <p className="eyebrow mb-3">Calendario</p>
+              <InlineCalendar
+                currentMonth={selectedDate}
+                selectedDate={selectedDate}
+                onSelectDate={handleCalendarSelect}
+                eventDates={eventDates}
+              />
+            </div>
+            {categoriesBlock}
+            {locationsBlock}
+            <PromoBanner />
           </div>
-        </div>
+        </aside>
       </div>
 
       {showSubmitForm && <SubmitEventForm onClose={() => setShowSubmitForm(false)} selectedDate={selectedDate} />}

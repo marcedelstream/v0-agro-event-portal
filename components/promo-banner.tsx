@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Gamepad2, Store } from "lucide-react"
+import { ArrowRight, Gamepad2, Newspaper, Store } from "lucide-react"
 
 export function PromoBanner() {
   return (
@@ -7,52 +7,45 @@ export function PromoBanner() {
       href="https://agrojuego.com"
       target="_blank"
       rel="noopener noreferrer"
-      className="relative overflow-hidden flex items-center gap-3 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/20 via-primary/10 to-accent/20 p-4 transition-colors hover:shadow-md hover:border-primary/50 group"
+      className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-lg hover:shadow-black/5 group"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/30">
-        <Gamepad2 className="h-6 w-6 text-primary-foreground" />
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-lime text-brand-navy">
+        <Gamepad2 className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-base font-semibold text-foreground flex items-center gap-2">
-          Descubre agrojuego.com
-          <span className="text-xs px-2 py-0.5 rounded-full bg-accent/30 text-accent-foreground font-medium">
-            Nuevo
-          </span>
+        <p className="font-bold flex items-center gap-2">
+          Descubrí agrojuego.com
+          <span className="eyebrow rounded-full bg-brand-lime/15 px-2 py-0.5">Nuevo</span>
         </p>
-        <p className="text-sm text-muted-foreground">Desafia tus conocimientos y gana premios reales</p>
+        <p className="text-sm text-muted-foreground">Desafiá tus conocimientos y ganá premios reales</p>
       </div>
+      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>
   )
 }
 
+// Banner oscuro con el aro lima, igual que el hero de agroconecta.com.py
 export function AgroconectaBanner() {
   return (
     <Link
       href="https://www.instagram.com/agroconectapy"
       target="_blank"
       rel="noopener noreferrer"
-      className="relative overflow-hidden flex items-center gap-3 rounded-2xl border-2 border-accent/30 bg-gradient-to-r from-accent/20 via-accent/10 to-secondary/10 p-4 transition-colors hover:shadow-md hover:border-accent/50 group"
+      className="relative flex items-center gap-4 overflow-hidden rounded-2xl bg-brand-navy p-5 text-white group dark:border dark:border-border"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent/60 shadow-lg shadow-accent/30">
-        <svg
-          className="h-6 w-6 text-accent-foreground"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
-          <path d="M18 14h-8" />
-          <path d="M15 18h-5" />
-          <path d="M10 6h8v4h-8V6Z" />
-        </svg>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-10 -bottom-16 h-40 w-40 rounded-full border-[14px] border-brand-lime/80"
+      />
+      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-lime text-brand-navy">
+        <Newspaper className="h-5 w-5" />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-base font-semibold text-foreground">Conoce Agroconecta Medios</p>
-        <p className="text-sm text-muted-foreground">El medio digital 100% streaming del agro</p>
+      <div className="relative flex-1 min-w-0">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-lime">Agroconecta Medios</p>
+        <p className="font-bold text-lg leading-tight">Conocé Agroconecta Medios</p>
+        <p className="text-sm text-white/70">El medio digital 100% streaming del agro</p>
       </div>
+      <ArrowRight className="relative h-5 w-5 text-brand-lime transition-transform group-hover:translate-x-0.5" />
     </Link>
   )
 }
@@ -61,15 +54,16 @@ export function ProveedoresBanner() {
   return (
     <Link
       href="/proveedores"
-      className="relative overflow-hidden flex items-center gap-3 rounded-2xl border-2 border-blue-400/40 bg-gradient-to-r from-blue-500/25 via-blue-400/15 to-cyan-400/20 p-4 transition-colors hover:shadow-md hover:border-blue-400/60 group"
+      className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-lg hover:shadow-black/5 group"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/40">
-        <Store className="h-6 w-6 text-white" />
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-lime text-brand-navy">
+        <Store className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-base font-semibold text-foreground">Directorio de Proveedores</p>
-        <p className="text-sm text-blue-300">Audiovisual, catering, stands y mas para tu evento</p>
+        <p className="font-bold">Directorio de Proveedores</p>
+        <p className="text-sm text-muted-foreground">Audiovisual, catering, stands y más para tu evento</p>
       </div>
+      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>
   )
 }

@@ -1,22 +1,24 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import {
-  Calendar,
-  Clock,
-  MapPin,
   ArrowLeft,
+  ArrowUpRight,
+  CalendarPlus,
+  CalendarX,
+  Clock,
+  ExternalLink,
+  ImageIcon,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Share2,
   Star,
   Users,
-  Mail,
-  Building,
-  Share2,
-  ExternalLink,
-  Phone,
-  Navigation,
-  ImageIcon,
 } from "lucide-react"
+import { Header } from "@/components/header"
 import { CountdownTimer } from "@/components/countdown-timer"
 import { GacetillaButton } from "@/components/gacetilla-button"
 import { EventGallery } from "@/components/event-gallery"
@@ -24,8 +26,9 @@ import { Button } from "@/components/ui/button"
 import { categoryLabels, categoryColors } from "@/lib/events-data"
 import { cn } from "@/lib/utils"
 import { createBrowserClient } from "@/lib/supabase/client"
+import { SPONSOR_WHATSAPP, whatsappLink } from "@/lib/site-config"
 
-interface Event {
+export interface EventDetail {
   id: string
   title: string
   description: string
@@ -41,7 +44,6 @@ interface Event {
   speakers?: string[]
   is_premium: boolean
   image_url?: string
-  banner_image_url?: string
   slug: string
   contact_email?: string
   contact_phone?: string
@@ -51,59 +53,84 @@ interface Event {
   gacetilla_titulo?: string
   gacetilla_imagen?: string
   gacetilla_texto?: string
+  organization_id?: string
+}
+
+export interface EventOrganization {
+  name: string
+  slug: string
+  avatar_url: string | null
+}
+
+export interface GalleryImage {
+  id: string
+  image_url: string
+  caption?: string
 }
 
 interface EventoClientPageProps {
-  slug: string
+  event: EventDetail | null
+  galleryImages: GalleryImage[]
+  organization: EventOrganization | null
 }
 
-export function EventoClientPage({ slug }: EventoClientPageProps) {
-  const router = useRouter()
-  const [event, setEvent] = useState<Event | null>(null)
-  const [loading, setLoading] = useState(true)
+type ContactType = "info" | "sponsor" | "stand"
+
+const DAY_MS = 1000 * 60 * 60 * 24
+
+// Las fechas vienen como "YYYY-MM-DD"; se anclan al mediodia para que la zona horaria no corra el dia.
+function parseDay(value: string) {
+  return new Date(`${value}T12:00:00`)
+}
+
+function capitalizeFirst(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+function withProtocol(url: string) {
+  return url.startsWith("http://") || url.startsWith("https://") ? url : `https://${url}`
+}
+
+function toCalendarDay(date: Date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}${m}${d}`
+}
+
+function googleCalendarUrl(event: EventDetail) {
+  const start = parseDay(event.date)
+  // En Google Calendar el fin de un evento de dia completo es exclusivo: se suma un dia.
+  const end = parseDay(event.end_date || event.date)
+  end.setDate(end.getDate() + 1)
+  const location = [event.location, event.city, event.department].filter(Boolean).join(", ")
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: event.title,
+    dates: `${toCalendarDay(start)}/${toCalendarDay(end)}`,
+    details: event.description || "",
+    location,
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+function isVirtual(event: EventDetail) {
+  const text = `${event.location} ${event.city ?? ""}`.toLowerCase()
+  return event.category === "webinar" || /virtual|online|zoom|meet/.test(text)
+}
+
+export function EventoClientPage({ event, galleryImages, organization }: EventoClientPageProps) {
   const [showContactForm, setShowContactForm] = useState(false)
-  const [contactType, setContactType] = useState("")
+  const [contactType, setContactType] = useState<ContactType>("info")
   const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", message: "" })
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [galleryImages, setGalleryImages] = useState<{ id: string; image_url: string; caption?: string }[]>([])
+  // "Hoy" se calcula recien en el navegador para no desfasar el HTML del servidor (UTC) con el del usuario.
+  const [now, setNow] = useState<Date | null>(null)
 
   useEffect(() => {
-    async function loadEvent() {
-      const supabase = createBrowserClient()
-      const { data } = await supabase
-        .from("events")
-        .select("*")
-        .eq("slug", slug)
-        .eq("is_approved", true)
-        .single()
-
-      if (data) {
-        const { data: bannerData } = await supabase
-          .from("banners")
-          .select("image_url")
-          .eq("event_id", data.id)
-          .eq("is_active", true)
-          .single()
-
-        if (bannerData?.image_url) {
-          data.banner_image_url = bannerData.image_url
-        }
-
-        // Cargar galeria
-        const { data: galleryData } = await supabase
-          .from("event_gallery")
-          .select("id, image_url, caption")
-          .eq("event_id", data.id)
-          .order("display_order", { ascending: true })
-        if (galleryData) setGalleryImages(galleryData)
-      }
-
-      setEvent(data)
-      setLoading(false)
-    }
-    loadEvent()
-  }, [slug])
+    setNow(new Date())
+  }, [])
 
   const handleContactSubmit = async () => {
     if (!event) return
@@ -121,516 +148,509 @@ export function EventoClientPage({ slug }: EventoClientPageProps) {
     setSubmitted(true)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse space-y-4 w-full max-w-2xl mx-auto px-4">
-          <div className="h-8 bg-muted rounded-xl w-1/3" />
-          <div className="h-64 bg-muted rounded-2xl" />
-          <div className="h-4 bg-muted rounded w-2/3" />
-          <div className="h-4 bg-muted rounded w-1/2" />
-        </div>
-      </div>
-    )
+  const openContact = (type: ContactType) => {
+    setContactType(type)
+    setShowContactForm(true)
   }
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Evento no encontrado</h1>
-          <p className="text-muted-foreground mb-4">El evento que buscas no existe o fue eliminado</p>
-          <Button onClick={() => router.push("/")} className="rounded-xl">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver al inicio
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex flex-col items-center justify-center px-4 py-24 text-center">
+          <CalendarX className="h-12 w-12 text-muted-foreground mb-4" />
+          <h1 className="text-2xl font-extrabold mb-2">Evento no encontrado</h1>
+          <p className="text-muted-foreground mb-6">El evento que buscás no existe o fue eliminado</p>
+          <Button asChild className="rounded-full">
+            <Link href="/">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Volver al inicio
+            </Link>
           </Button>
         </div>
       </div>
     )
   }
 
-  // Construir la fecha con la hora real del evento para el countdown
-  const eventTimeStr = event.time || "00:00"
-  const eventDate = new Date(`${event.date}T${eventTimeStr}:00`)
-  const endDate = event.end_date ? new Date(event.end_date + "T23:59:00") : null
+  const startDay = parseDay(event.date)
+  const endDay = event.end_date && event.end_date !== event.date ? parseDay(event.end_date) : null
+  const eventDuration = endDay ? Math.round((endDay.getTime() - startDay.getTime()) / DAY_MS) + 1 : 1
 
-  const formattedDate = eventDate.toLocaleDateString("es-ES", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
+  const monthShort = startDay.toLocaleDateString("es-ES", { month: "short" }).replace(".", "").toUpperCase()
+  const longDate = capitalizeFirst(startDay.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }))
+  const longEndDate = endDay?.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })
 
-  const formattedEndDate = endDate
-    ? endDate.toLocaleDateString("es-ES", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : null
+  // Estado relativo a hoy (solo en el navegador)
+  let daysUntilStart: number | null = null
+  let daysSinceEnd: number | null = null
+  if (now) {
+    const today = new Date(now)
+    today.setHours(12, 0, 0, 0)
+    daysUntilStart = Math.round((startDay.getTime() - today.getTime()) / DAY_MS)
+    daysSinceEnd = Math.round((today.getTime() - (endDay || startDay).getTime()) / DAY_MS)
+  }
+  const hasEnded = daysSinceEnd !== null && daysSinceEnd > 0
+  const isOngoing = daysUntilStart !== null && daysUntilStart <= 0 && !hasEnded
+  const showYear = now !== null && startDay.getFullYear() !== now.getFullYear()
+  const eventStart = new Date(`${event.date}T${event.time || "00:00"}:00`)
 
-  const today = new Date()
-  today.setHours(12, 0, 0, 0)
-  const daysUntilEvent = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  // Evita "Asuncion, Asuncion" cuando ciudad y departamento coinciden
+  const placeLine = [...new Set([event.city, event.department].filter(Boolean))].join(", ")
+  const virtual = isVirtual(event)
+  const mapQuery = [event.location, event.city, event.department, "Paraguay"].filter(Boolean).join(", ")
+  const allowContactForm = event.allow_contact_form !== false
+  const hasDirectContact = Boolean(event.contact_email || event.contact_phone)
 
-  const startDateOnly = new Date(`${event.date}T00:00:00`)
-  const endDateOnly = event.end_date ? new Date(`${event.end_date}T00:00:00`) : null
-  const eventDuration = endDateOnly
-    ? Math.round((endDateOnly.getTime() - startDateOnly.getTime()) / (1000 * 60 * 60 * 24)) + 1
-    : 1
-
-  // "Finalizado" debe depender del ultimo dia del evento (end_date), no del primero,
-  // para que un evento de varios dias no aparezca finalizado mientras todavia esta en curso.
-  const lastEventDay = endDateOnly || startDateOnly
-  const daysUntilEventEnd = Math.ceil((lastEventDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-  const eventHasEnded = daysUntilEventEnd < 0
+  const organizerBlock = (
+    <div className="space-y-3">
+      <SectionTitle>Organizado por</SectionTitle>
+      {organization ? (
+        <Link href={`/organizador/${organization.slug}`} className="flex items-center gap-3 group">
+          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border bg-muted flex items-center justify-center">
+            {organization.avatar_url ? (
+              <img src={organization.avatar_url} alt={organization.name} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-sm font-bold text-muted-foreground">{organization.name.charAt(0)}</span>
+            )}
+          </div>
+          <span className="font-semibold group-hover:underline underline-offset-4">{organization.name}</span>
+        </Link>
+      ) : (
+        <div className="flex items-center gap-3">
+          <img src="/favicon.png" alt="" className="h-9 w-9 rounded-full border border-border bg-card object-contain p-1" />
+          <span className="font-semibold">Eventos Agro</span>
+        </div>
+      )}
+      {hasDirectContact && (
+        <div className="flex flex-col gap-1.5 pt-1 text-sm">
+          {event.contact_email && (
+            <a href={`mailto:${event.contact_email}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Mail className="h-4 w-4" />
+              <span className="truncate">{event.contact_email}</span>
+            </a>
+          )}
+          {event.contact_phone && (
+            <a href={`tel:${event.contact_phone}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <Phone className="h-4 w-4" />
+              {event.contact_phone}
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Image */}
+    <div className="relative min-h-screen bg-background">
+      <Header />
+
+      {/* Fondo difuminado con los colores del flyer, como en Luma */}
       {event.image_url && (
-        <div className="relative h-56 md:h-72 w-full">
-          <img src={event.image_url || "/placeholder.svg"} alt={event.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-          {event.is_premium && (
-            <div className="absolute top-4 right-4 flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-500 to-amber-500 text-black text-sm font-bold shadow-lg shadow-yellow-500/30">
-              <Star className="h-4 w-4 fill-current" />
-              Evento Premium
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/")}
-            className="absolute top-4 left-4 rounded-xl bg-black/30 backdrop-blur-sm text-white hover:bg-black/50"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
-          </Button>
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[560px] overflow-hidden">
+          <img src={event.image_url} alt="" className="h-full w-full scale-125 object-cover opacity-30 blur-3xl dark:opacity-20" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/60 to-background" />
         </div>
       )}
 
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        {!event.image_url && (
-          <Button variant="ghost" onClick={() => router.push("/")} className="mb-4 rounded-xl -ml-2">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
-          </Button>
-        )}
+      <main className="relative mx-auto max-w-5xl px-4 pb-16 pt-6 md:pt-10 xl:max-w-6xl xl:px-8">
+        <Link
+          href="/"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Todos los eventos
+        </Link>
 
-        {/* Header del evento */}
-        <div className={cn("space-y-4", event.image_url && "-mt-16 relative z-10")}>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={cn("px-4 py-1.5 rounded-full text-sm font-bold", categoryColors[event.category])}>
-              {categoryLabels[event.category] || event.category}
-            </span>
-            {event.is_premium && !event.image_url && (
-              <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-yellow-500/30 to-amber-500/30 text-yellow-500 text-sm font-bold">
-                <Star className="h-4 w-4 fill-current" />
-                Premium
-              </span>
-            )}
-            {eventDuration > 1 && (
-              <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs font-semibold">
-                {eventDuration} dias
-              </span>
-            )}
-            {eventHasEnded && (
-              <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-semibold">
-                Finalizado
-              </span>
-            )}
-          </div>
-
-          <h1
-            className={cn(
-              "text-3xl md:text-4xl font-bold leading-tight",
-              event.is_premium &&
-                "text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500",
-            )}
-          >
-            {event.title}
-          </h1>
-
-          {/* Cuenta regresiva */}
-          {daysUntilEvent >= 0 && (
-            <div className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border border-primary/20">
-              <CountdownTimer targetDate={eventDate} />
+        <div className="grid gap-8 md:grid-cols-[320px_minmax(0,1fr)] md:gap-12 xl:grid-cols-[400px_minmax(0,1fr)] xl:gap-16">
+          {/* Columna izquierda: flyer + organizador */}
+          <aside className="space-y-8 md:sticky md:top-24 md:self-start">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl shadow-black/10">
+              {event.image_url ? (
+                <img src={event.image_url} alt={event.title} className="block h-auto w-full" />
+              ) : (
+                <div className="flex aspect-square items-center justify-center bg-brand-navy">
+                  <img src="/logo.png" alt="Eventos Agro" className="w-2/3 opacity-90" />
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Info cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-6">
-            <div className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-2 border-blue-500/20">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                <Calendar className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Fecha</p>
-                <p className="font-bold capitalize text-sm">{formattedDate}</p>
-                {event.end_date && event.end_date !== event.date && formattedEndDate && (
-                  <p className="text-xs text-muted-foreground">hasta {formattedEndDate}</p>
+            <div className="hidden md:block">{organizerBlock}</div>
+
+            <div className="hidden md:flex flex-wrap gap-2">
+              <Link
+                href={`/categoria/${event.category}`}
+                className={cn("rounded-full px-3 py-1 text-xs font-semibold", categoryColors[event.category])}
+              >
+                {categoryLabels[event.category] || event.category}
+              </Link>
+              {event.department && (
+                <Link
+                  href={`/ubicacion/${encodeURIComponent(event.department.toLowerCase().replace(/\s+/g, "-"))}`}
+                  className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium hover:border-foreground/30"
+                >
+                  {event.department}
+                </Link>
+              )}
+            </div>
+          </aside>
+
+          {/* Columna derecha: datos del evento */}
+          <section className="min-w-0 space-y-8">
+            <div className="space-y-5">
+              <div className="flex flex-wrap items-center gap-2">
+                {event.is_premium && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-lime px-3 py-1 text-xs font-bold text-brand-navy">
+                    <Star className="h-3.5 w-3.5 fill-current" />
+                    Destacado
+                  </span>
+                )}
+                <span className={cn("rounded-full px-3 py-1 text-xs font-semibold md:hidden", categoryColors[event.category])}>
+                  {categoryLabels[event.category] || event.category}
+                </span>
+                {eventDuration > 1 && (
+                  <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold">
+                    {eventDuration} días
+                  </span>
+                )}
+                {isOngoing && (
+                  <span className="rounded-full bg-brand-lime px-3 py-1 text-xs font-bold text-brand-navy">En curso</span>
+                )}
+                {hasEnded && (
+                  <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">Finalizado</span>
                 )}
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-yellow-500/10 border-2 border-amber-500/20">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center shadow-lg shadow-amber-500/25">
-                <Clock className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Hora</p>
-                <p className="font-bold text-sm">{event.time}</p>
-              </div>
-            </div>
-            {event.maps_url ? (
-              <a
-                href={event.maps_url.startsWith("http") ? event.maps_url : `https://${event.maps_url}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 border-2 border-emerald-500/20 hover:border-emerald-500/40 hover:scale-[1.02] transition-all cursor-pointer group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg shadow-emerald-500/25 group-hover:scale-110 transition-transform">
-                  <Navigation className="h-6 w-6 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground font-medium">Ubicacion</p>
-                  <p className="font-bold text-sm">{event.location}</p>
-                  <p className="text-xs text-emerald-500 mt-0.5">Toca para ver en el mapa</p>
-                </div>
-                <ExternalLink className="h-4 w-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </a>
-            ) : (
-              <div className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 border-2 border-emerald-500/20">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
-                  <MapPin className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Ubicacion</p>
-                  <p className="font-bold text-sm">{event.location}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Descripcion */}
-        <div className="mt-8 p-6 rounded-2xl bg-card border-2 border-border">
-          <h2 className="font-bold text-lg mb-3">Acerca del evento</h2>
-          <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
-            {event.long_description || event.description}
-          </p>
-        </div>
+              <h1 className="text-balance text-3xl font-extrabold leading-[1.1] md:text-5xl">{event.title}</h1>
 
-        {/* Banner interno */}
-        {event.internal_banner_url && (
-          <div className="mt-6">
-            <img
-              src={event.internal_banner_url || "/placeholder.svg"}
-              alt="Banner del evento"
-              className="w-full h-auto rounded-2xl object-cover"
-            />
-          </div>
-        )}
-
-        {/* Links importantes */}
-        {event.important_links && event.important_links.length > 0 && (
-          <div className="mt-6 p-6 rounded-2xl bg-card border-2 border-border">
-            <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
-              <ExternalLink className="h-5 w-5 text-primary" />
-              Links importantes
-            </h2>
-            <div className="grid gap-2">
-              {event.important_links.map((link, i) => {
-                const url = link.url.startsWith("http://") || link.url.startsWith("https://") 
-                  ? link.url 
-                  : `https://${link.url}`
-                return (
-                <a
-                  key={i}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
-                >
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                    <ExternalLink className="h-5 w-5" />
+              {/* Fecha y lugar en filas, como Luma */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 shrink-0 overflow-hidden rounded-xl border border-border bg-card text-center">
+                    <div className="bg-muted py-0.5 text-[10px] font-bold tracking-wider text-muted-foreground">{monthShort}</div>
+                    <div className="py-1 text-lg font-extrabold leading-none">{startDay.getDate()}</div>
                   </div>
-                  <span className="font-medium group-hover:text-primary transition-colors">{link.label}</span>
-                </a>
-              )})}
-            </div>
-          </div>
-        )}
-
-        {/* Ponentes */}
-        {event.speakers && event.speakers.length > 0 && (
-          <div className="mt-6 p-6 rounded-2xl bg-card border-2 border-border">
-            <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              Ponentes
-            </h2>
-            <div className="grid gap-2">
-              {event.speakers.map((speaker, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                    {speaker.charAt(0)}
+                  <div className="min-w-0">
+                    <p className="font-semibold">
+                      {longDate}
+                      {longEndDate ? ` — ${longEndDate}` : ""}
+                      {showYear && `, ${startDay.getFullYear()}`}
+                    </p>
+                    {event.time && (
+                      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
+                        {event.time} hs
+                      </p>
+                    )}
                   </div>
-                  <span className="font-medium">{speaker}</span>
                 </div>
-              ))}
+
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-card">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    {event.maps_url ? (
+                      <a
+                        href={withProtocol(event.maps_url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-semibold hover:underline underline-offset-4"
+                      >
+                        {event.location}
+                        <ArrowUpRight className="h-4 w-4" />
+                      </a>
+                    ) : (
+                      <p className="font-semibold">{event.location}</p>
+                    )}
+                    {placeLine && <p className="text-sm text-muted-foreground">{placeLine}</p>}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* Galeria de fotos */}
-        {galleryImages.length > 0 && (
-          <div className="mt-6 p-6 rounded-2xl bg-card border-2 border-border">
-            <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-              <ImageIcon className="h-5 w-5 text-primary" />
-              Galeria de fotos
-            </h2>
-            <EventGallery images={galleryImages} />
-          </div>
-        )}
-
-        {/* Gacetilla */}
-        {event.gacetilla_texto && (
-          <div className="mt-4">
-            <GacetillaButton
-              titulo={event.gacetilla_titulo || event.title}
-              imagen={event.gacetilla_imagen}
-              texto={event.gacetilla_texto}
-            />
-          </div>
-        )}
-
-        <div className="mt-8">
-          <h2 className="font-bold text-xl mb-4 flex items-center gap-2">
-            <Star className="h-5 w-5 text-primary" />
-            Te interesa este evento?
-          </h2>
-
-          {/* Contacto directo si allow_contact_form es false */}
-          {event.allow_contact_form === false && (event.contact_email || event.contact_phone) && (
-            <div className="mb-6 p-6 rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20">
-              <h3 className="font-bold mb-4">Contacto directo del organizador</h3>
-              <div className="grid gap-3">
-                {event.contact_email && (
-                  <a
-                    href={`mailto:${event.contact_email}`}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-card border-2 border-border hover:border-primary/40 transition-all group"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
-                      <Mail className="h-6 w-6 text-white" />
+            {/* Tarjeta de participacion (equivale a "Inscripcion" en Luma) */}
+            <div className="overflow-hidden rounded-2xl border border-border bg-card">
+              <div className="border-b border-border bg-muted/60 px-5 py-2.5 text-sm font-semibold text-muted-foreground">
+                {hasEnded ? "Evento pasado" : "Participá"}
+              </div>
+              <div className="space-y-4 p-5">
+                {hasEnded ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                      <CalendarX className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="font-bold text-sm">Email</p>
-                      <p className="text-sm text-muted-foreground">{event.contact_email}</p>
+                      <p className="font-semibold">Este evento ya terminó</p>
+                      <p className="text-sm text-muted-foreground">
+                        Finalizó hace {daysSinceEnd} {daysSinceEnd === 1 ? "día" : "días"}.
+                      </p>
                     </div>
-                  </a>
+                  </div>
+                ) : (
+                  <>
+                    {now && !isOngoing && (
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="text-sm text-muted-foreground">Faltan</p>
+                        <CountdownTimer targetDate={eventStart} />
+                      </div>
+                    )}
+                    <a
+                      href={googleCalendarUrl(event)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-navy font-semibold text-white transition-colors hover:bg-brand-navy/90 dark:bg-brand-lime dark:text-brand-navy dark:hover:bg-brand-lime-dark"
+                    >
+                      <CalendarPlus className="h-5 w-5" />
+                      Agregar a mi calendario
+                    </a>
+                  </>
                 )}
-                {event.contact_phone && (
+
+                {/* Auspicios: van al WhatsApp de Eventos Agro; sin numero configurado, al formulario */}
+                {SPONSOR_WHATSAPP ? (
                   <a
-                    href={`tel:${event.contact_phone}`}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-card border-2 border-border hover:border-primary/40 transition-all group"
+                    href={whatsappLink(
+                      SPONSOR_WHATSAPP,
+                      `Hola! Quiero auspiciar el evento "${event.title}" (https://eventosagropy.com/evento/${event.slug})`,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-border font-semibold transition-colors hover:bg-muted"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg">
-                      <Phone className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm">Telefono</p>
-                      <p className="text-sm text-muted-foreground">{event.contact_phone}</p>
-                    </div>
+                    <MessageCircle className="h-4 w-4" />
+                    Quiero auspiciar este evento
                   </a>
+                ) : (
+                  allowContactForm && (
+                    <button
+                      onClick={() => openContact("sponsor")}
+                      className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-border font-semibold transition-colors hover:bg-muted"
+                    >
+                      <Star className="h-4 w-4" />
+                      Quiero auspiciar este evento
+                    </button>
+                  )
+                )}
+
+                {!allowContactForm && (
+                  hasDirectContact && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {event.contact_email && (
+                        <a
+                          href={`mailto:${event.contact_email}`}
+                          className="flex h-11 items-center justify-center gap-2 rounded-full border border-border text-sm font-semibold hover:bg-muted"
+                        >
+                          <Mail className="h-4 w-4" />
+                          Email
+                        </a>
+                      )}
+                      {event.contact_phone && (
+                        <a
+                          href={`tel:${event.contact_phone}`}
+                          className="flex h-11 items-center justify-center gap-2 rounded-full border border-border text-sm font-semibold hover:bg-muted"
+                        >
+                          <Phone className="h-4 w-4" />
+                          Llamar
+                        </a>
+                      )}
+                    </div>
+                  )
                 )}
               </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-2 gap-3">
-            {/* Tarjetas de contacto solo si allow_contact_form es true o undefined */}
-            {event.allow_contact_form !== false && (
-              <>
-                {/* Tarjeta: Mas informacion */}
-                <button
-                  onClick={() => {
-                    setContactType("info")
-                    setShowContactForm(true)
-                  }}
-                  className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-2 border-blue-500/20 hover:border-blue-500/40 hover:scale-[1.02] transition-all text-center group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-110 transition-transform">
-                    <Mail className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">Solicitar info</p>
-                    <p className="text-xs text-muted-foreground">Conoce mas</p>
-                  </div>
-                </button>
+            {/* Organizador en mobile (en desktop va en la columna izquierda) */}
+            <div className="md:hidden">{organizerBlock}</div>
 
-                {/* Tarjeta: Auspiciar */}
-                <button
-                  onClick={() => {
-                    setContactType("sponsor")
-                    setShowContactForm(true)
-                  }}
-                  className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-yellow-500/10 border-2 border-amber-500/20 hover:border-amber-500/40 hover:scale-[1.02] transition-all text-center group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center shadow-lg shadow-amber-500/25 group-hover:scale-110 transition-transform">
-                    <Star className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">Auspiciar</p>
-                    <p className="text-xs text-muted-foreground">Ser patrocinador</p>
-                  </div>
-                </button>
+            <div className="space-y-3">
+              <SectionTitle>Acerca del evento</SectionTitle>
+              <p className="whitespace-pre-line leading-relaxed text-foreground/85">
+                {event.long_description || event.description}
+              </p>
+            </div>
 
-                {/* Tarjeta: Stand */}
-                <button
-                  onClick={() => {
-                    setContactType("stand")
-                    setShowContactForm(true)
-                  }}
-                  className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 border-2 border-emerald-500/20 hover:border-emerald-500/40 hover:scale-[1.02] transition-all text-center group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg shadow-emerald-500/25 group-hover:scale-110 transition-transform">
-                    <Building className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">Quiero stand</p>
-                    <p className="text-xs text-muted-foreground">Exhibir productos</p>
-                  </div>
-                </button>
-              </>
+            {event.internal_banner_url && (
+              <img src={event.internal_banner_url} alt="Banner del evento" className="h-auto w-full rounded-2xl object-cover" />
             )}
 
-            {/* Tarjeta: Recordar evento */}
-            {daysUntilEvent > 0 && (
-              <a
-                href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${event.date.replace(/-/g, "")}/${event.end_date ? event.end_date.replace(/-/g, "") : event.date.replace(/-/g, "")}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-red-500/10 to-orange-500/10 border-2 border-red-500/20 hover:border-red-500/40 hover:scale-[1.02] transition-all text-center group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/25 group-hover:scale-110 transition-transform">
-                  <Calendar className="h-6 w-6 text-white" />
+            {event.speakers && event.speakers.length > 0 && (
+              <div className="space-y-3">
+                <SectionTitle icon={Users}>Disertantes</SectionTitle>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {event.speakers.map((speaker, i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-lime font-bold text-brand-navy">
+                        {speaker.charAt(0)}
+                      </div>
+                      <span className="font-medium">{speaker}</span>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            )}
+
+            {event.important_links && event.important_links.length > 0 && (
+              <div className="space-y-3">
+                <SectionTitle icon={ExternalLink}>Links importantes</SectionTitle>
+                <div className="grid gap-2">
+                  {event.important_links.map((link, i) => (
+                    <a
+                      key={i}
+                      href={withProtocol(link.url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 font-medium hover:border-foreground/30"
+                    >
+                      {link.label}
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {galleryImages.length > 0 && (
+              <div className="space-y-3">
+                <SectionTitle icon={ImageIcon}>Galería de fotos</SectionTitle>
+                <EventGallery images={galleryImages} />
+              </div>
+            )}
+
+            {event.gacetilla_texto && (
+              <GacetillaButton
+                titulo={event.gacetilla_titulo || event.title}
+                imagen={event.gacetilla_imagen}
+                texto={event.gacetilla_texto}
+              />
+            )}
+
+            {!virtual && event.location && (
+              <div className="space-y-3">
+                <SectionTitle>Ubicación</SectionTitle>
                 <div>
-                  <p className="font-bold text-sm">Recordar evento</p>
-                  <p className="text-xs text-muted-foreground">Desde Google Calendar</p>
+                  <p className="font-semibold">{event.location}</p>
+                  {placeLine && <p className="text-sm text-muted-foreground">{placeLine}</p>}
                 </div>
-              </a>
+                <div className="overflow-hidden rounded-2xl border border-border bg-muted">
+                  <iframe
+                    title={`Mapa de ${event.location}`}
+                    src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                    className="h-64 w-full"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Compartir */}
-        <div className="mt-8 flex justify-center">
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: event.title,
-                  text: event.description,
-                  url: window.location.href,
-                })
-              }
-            }}
-            className="rounded-xl"
-          >
-            <Share2 className="h-4 w-4 mr-2" />
-            Compartir evento
-          </Button>
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-6">
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: event.title, text: event.description, url: window.location.href })
+                  } else {
+                    navigator.clipboard?.writeText(window.location.href)
+                  }
+                }}
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Compartir evento
+              </Button>
+              <Link
+                href={`/categoria/${event.category}`}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground px-3"
+              >
+                Más eventos de {categoryLabels[event.category] || event.category}
+              </Link>
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
 
       {/* Modal de contacto */}
       {showContactForm && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border-2 border-border rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
             {submitted ? (
               <div className="text-center py-8">
-                <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-                  <Mail className="h-10 w-10 text-green-500" />
+                <div className="w-16 h-16 rounded-full bg-brand-lime flex items-center justify-center mx-auto mb-4">
+                  <Mail className="h-8 w-8 text-brand-navy" />
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Mensaje enviado!</h3>
-                <p className="text-muted-foreground mb-6">Los organizadores se pondran en contacto contigo pronto.</p>
+                <h3 className="text-2xl font-extrabold mb-2">¡Mensaje enviado!</h3>
+                <p className="text-muted-foreground mb-6">Los organizadores se pondrán en contacto con vos pronto.</p>
                 <Button
                   onClick={() => {
                     setShowContactForm(false)
                     setSubmitted(false)
                     setContactForm({ name: "", email: "", phone: "", message: "" })
                   }}
-                  className="rounded-xl"
+                  className="rounded-full"
                 >
                   Cerrar
                 </Button>
               </div>
             ) : (
               <>
-                <h3 className="text-xl font-bold mb-1">
-                  {contactType === "info" && "Solicitar informacion"}
+                <h3 className="text-xl font-extrabold mb-1">
+                  {contactType === "info" && "Solicitar información"}
                   {contactType === "sponsor" && "Auspiciar evento"}
                   {contactType === "stand" && "Solicitar stand"}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-6">{event.title}</p>
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">Nombre completo *</label>
+                  <FormField label="Nombre completo *">
                     <input
                       type="text"
                       value={contactForm.name}
                       onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                      className="w-full h-12 px-4 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      className={inputClass}
                       placeholder="Tu nombre"
                     />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">Correo electronico *</label>
+                  </FormField>
+                  <FormField label="Correo electrónico *">
                     <input
                       type="email"
                       value={contactForm.email}
                       onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                      className="w-full h-12 px-4 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      className={inputClass}
                       placeholder="tu@email.com"
                     />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">Telefono</label>
+                  </FormField>
+                  <FormField label="Teléfono">
                     <input
                       type="tel"
                       value={contactForm.phone}
                       onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
-                      className="w-full h-12 px-4 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      className={inputClass}
                       placeholder="+595 xxx xxx xxx"
                     />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">Mensaje</label>
+                  </FormField>
+                  <FormField label="Mensaje">
                     <textarea
                       value={contactForm.message}
                       onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                       rows={4}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none transition-all"
-                      placeholder="Escribe tu consulta..."
+                      className={cn(inputClass, "h-auto py-3 resize-none")}
+                      placeholder="Escribí tu consulta..."
                     />
-                  </div>
+                  </FormField>
                 </div>
 
                 <div className="flex gap-3 mt-6">
                   <Button
                     variant="outline"
                     onClick={() => setShowContactForm(false)}
-                    className="flex-1 h-12 rounded-xl"
+                    className="flex-1 h-12 rounded-full"
                     disabled={submitting}
                   >
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleContactSubmit}
-                    className="flex-1 h-12 rounded-xl"
+                    className="flex-1 h-12 rounded-full"
                     disabled={submitting || !contactForm.name || !contactForm.email}
                   >
                     {submitting ? "Enviando..." : "Enviar"}
@@ -642,5 +662,26 @@ export function EventoClientPage({ slug }: EventoClientPageProps) {
         </div>
       )}
     </div>
+  )
+}
+
+const inputClass =
+  "w-full h-12 px-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-4 focus:ring-brand-lime/30 focus:border-brand-lime transition-all"
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="text-sm font-medium mb-1.5 block">{label}</label>
+      {children}
+    </div>
+  )
+}
+
+function SectionTitle({ children, icon: Icon }: { children: React.ReactNode; icon?: typeof Users }) {
+  return (
+    <h2 className="flex items-center gap-2 border-b border-border pb-2 text-sm font-semibold text-muted-foreground">
+      {Icon && <Icon className="h-4 w-4" />}
+      {children}
+    </h2>
   )
 }
